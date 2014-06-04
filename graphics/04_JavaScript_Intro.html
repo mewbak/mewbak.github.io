@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GraphicsNotes 2013 -- Section 4: Introduction to JavaScript</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body>
+
+<div class="section">
+    
+<h2>Section 4:&nbsp;&nbsp; Introduction to JavaScript</h2>
+
+<p>JavaScript is a programming language that is used on Web pages.
+It was first developed by Netscape (the predecessor of Firefox) at about the
+same time that Java was introduced, and the name JavaScript was chosen
+to ride the tide of Java's increasing popularity.  In spite of the similar
+names, the two languages are quite different.  In fact, there is no
+standardized language named JavaScript. The standardized language is
+officially called ECMAScript, but the name is not widely used in practice,
+and versions of JavaScript in actual web browsers don't necessarily
+implement the standard exactly.
+</p>
+
+<p>We will mostly be interested in the parts of JavaScript that relate
+to graphics, using the HTML &lt;canvas&gt; element.  A canvas is a drawing
+surface that can appear on a web page, in much the same way that a JPanel is
+a drawing surface that can be used in a Java application.  Canvas is a
+relatively recent addition to the Web, but it is implemented in all modern
+browsers.  Internet Explorer was the last major browser to add canvas
+support, but it is implemented in Internet Explorer 9 and later.
+Unfortunately, this means that there are still a lot of people using
+browsers that don't support canvas.  On the other hand, fortunately for
+us, all the browsers that do support it use a fairly standardized version of
+JavaScript, and that will allow us to ignore most of the incompatibilities
+that have plagued web developers.</p>
+
+<p>This will be a very cursory introduction to JavaScript, covering just
+the parts that we will need.  The coverage here is meant for people who
+already know Java.  If you really want to learn JavaScript in detail,
+you might consider the book <i>JavaScript: The Complete Guide</i>,
+6th edition, by David Flanagan.</p>
+
+<div class="subsection">
+<h3>The Core Language</h3>
+<p>JavaScript is most closely associated with web pages, but in fact it
+is a general purpose language that is used in other places too.  There is
+a core language that has nothing to do with web pages in particular, and
+we begin by looking at that core.</p>
+
+<p><span class="subsection">Variables and Types.</span>&nbsp;
+Variables in Java are not typed.  That is, when you declare a variable, you
+don't have to declare what type it is, and any variable can refer to data
+of any type.  Variables are declared using the keyword <b>var</b>, and they
+can optionally be initialized when they are declared:
+</p>
+
+<pre>var x, y;
+var name = "David";</pre>
+
+<p class="np">A variable that is declared in this way inside a function
+is local to that function. ("Function" is the term used for subroutines
+in JavaScript.) You can also use global variables in a function,
+that is, variables that are declared outside the function.  JavaScript,
+by default, allows you to use variables without declaring them.  However, doing
+so is generally not a good idea.  You can prevent the use of undeclared variables,
+as well as certain other unsafe practices, by including the following statement
+at the beginning of your program:</p>
+
+<pre>"use strict";
+</pre>
+
+<p>Although variables don't have types, values do.  A value can be a number, a string,
+a boolean, an object, or a function.  The fact that a function can be used as a
+data value is probably a surprise to you; more  on that later.
+There are a number of differences from Java.  When you compare strings using
+the == or != operators, the contents of the strings are compared.  There is no
+<span class="ptype">char</span> type.  Strings can be written with either single
+quotes or double quotes.  There is not a strict distinction between integers and
+real numbers.  Division of integers produces a real number, so that 1/2 in
+JavaScript is 0.5, not 0 as it would be in Java.  Although there is a
+boolean type, you can actually use any type of value in a boolean context.
+So, you will often see tests in JavaScript such as</p>
+
+<pre>if (x) { ... }
+</pre>
+
+<p class="np">The value of <i>x</i> as a boolean is considered to be false if,
+for example, <i>x</i> is the number zero or is the empty string or is <i>null</i>.
+Effectively, any type of value can be converted implicitly to boolean.  (JavaScript
+sometimes does other implicit conversions that you might not expect.)</p>
+
+<p>The operator <i>typeof</i> can be used to check the type of a value, as in
+<i>typeof&nbsp;x</i>.   This expression is a string such as "number", "string",
+"boolean", "function", or "object", so that you can make tests such as</p>
+
+<pre>if ( typeof x == "object" ) ...
+</pre>
+
+<p class="np">Note that <i>typeof x</i> is "object" for objects of any type,
+including arrays.</p>
+
+<p>Like Java, JavaScript uses the special value <i>null</i> to indicate an
+empty or non-existing value (but remember that any variable can be null).
+JavaScript also has a special value <i>undefined</i> which is the value
+of a variable that has not been initialized.  (<i>typeof&nbsp;null</i>
+is "object", and <i>typeof&nbsp;undefined</i> is "undefined".)</p>
+
+<p>JavaScript does not have type-casting as it exists in Java.  However,
+you can use <i>Number</i>, <i>String</i>, and <i>Boolean</i> as conversion
+functions.  For example,</p>
+
+<pre>x = Number(y);
+</pre>
+
+<p class="np">will attempt to convert <i>y</i> to a number.  You can apply this,
+for example, when <i>y</i> is a string.  If the conversion fails, the value of
+<i>x</i> will be <i>NaN</i>, a special value indicating "Not a Number," equivalent
+to <i>Double.NaN</i> in Java.  Aside from the exceptions I've mentioned, expressions
+are mostly the same in JavaScript as in Java, including things defined in the
+<span class="classname">Math</span> class such as <i>Math.random</i>(),
+<i>Math.sqrt</i>(), and the constant <i>Math.PI</i>.</p>
+
+
+<p><span class="subsection">Control Structures.</span>&nbsp;
+JavaScript control structures are pretty much the same as in Java,
+including <i>if</i>, <i>while</i>, <i>for</i>, <i class="nb">do..while</i>,
+and <i>switch</i>.  JavaScript does not have the "foreach" version of
+<i>for</i>; instead, it has an explicit <i>foreach</i> control structure
+that I will not cover here.  JavaScript has a <i class="nb">try..catch</i>
+that is similar to Java's, but since variables are untyped, there is
+only one <i>catch</i> block, and it does not declare a type for
+the exception.  (That is, you say, "catch&nbsp;(e)" rather than
+"catch(Exception&nbsp;e)".)  Any type of value can be thrown.  You might,
+for example, throw a string that represents an error message.
+</p>
+
+<p><span class="subsection">Defining and Functions.</span>&nbsp;
+Functions in Java are defined using the <i>function</i> keyword.
+Since variables are untyped, no return type is declared and
+parameters do not have declared types.  Here is a typical
+function definition:
+</p>
+
+<pre>function square(x) {
+    return x * x;
+}
+</pre>
+
+<p class="np">A function can return any type of value, or it can return nothing
+(like a <i>void</i> method in Java).  In fact, the same function might sometimes
+return a value and sometimes not, although that would not be good style.
+JavaScript does not require the number of parameters in a function call to
+match the number of parameters in a function definition.  If you provide too
+few parameters in the function call, then the extra parameters in the function
+definition get the value <i>undefined</i>.  You can check for this in the
+function by using the parameter as a test in an <i>if</i> statement.
+There can be a good reason for doing this:  It makes it possible to have
+optional parameters.  For example, consider
+</p>
+
+<pre>function multiple( str, count ) {
+     if ( ! count ) {
+         count = 2;
+     }
+     var i;
+     var copies = "";
+     for (i = 0; i &lt; count; i++) {
+         copies += str;
+     }
+     return copies;
+}</pre>
+
+<p class="np">If no value is provided for <i>count</i>, as in <i>multiple</i>("foo"),
+then <i>count</i> will be set to&nbsp;2.  (Of course, that will also happen if
+<i>count</i> is 0 or <i>null</i> or <i>false</i> or the empty string.  If you want
+to be sure that <i>count</i> is really <i>undefined</i>, you can test 
+<i>if (typeof count == "undefined")</i>.)</p>
+
+<p>You can also provide too many values in a function call.  All the values provided
+are always available in the function in a special variable named <i>arguments</i>,
+which is essentially an array.  For example, this makes it possible to write a
+<i>sum</i> function that takes any number of input values:</p>
+
+<pre>function sum() {
+    var i;
+    var total = 0;
+    for (i = 0; i &lt; arguments.length; i++) {
+         total += arguments[i];
+    }
+    return total;
+}</pre>
+
+<p class="np">With this definition, you can call <i>sum</i>(2,2),
+<i>sum</i>(1,2,3,4,5), and even <i>sum</i>().  (The value of the
+last function call is zero.)  Note that calling <i>sum</i> with
+non-numeric arguments will not produce an error but will not
+produce a useful result.</p>
+
+<p><span class="subsection">Functional Programming.</span>&nbsp;
+Functions in JavaScript are "first class objects."  This means that functions
+are treated as regular data values, and you can do the sort of things with
+them that you do with data:  assign them to variables, store them in arrays,
+pass them as parameters to functions, return them from functions.  In
+fact, it is very common to do all of these things!
+</p>
+
+<p>When you define a function using a definition like the ones in the
+examples shown above, it's almost the same as assigning a function to
+a variable.  For example, given the above definition of the function <i>sum</i>,
+you can assign <i>sum</i> to a variable or pass it as a parameter, and you
+would be assigning or passing the function.  And if the value of a variable
+is a function, you can use the variable just as you would use the function
+name, to call the function.  That is, if you do
+</p>
+
+<pre>var f = sum;
+</pre>
+
+<p class="np">then you can call <i>f</i>(1,2,3), and it will be the  same
+as calling <i>sum</i>(1,2,3).  (One difference between defining a function
+and assigning a variable is that a function defined by a function definition
+can be used anywhere in the program, even before the function definition.
+The computer reads the entire program and defines the functions before it
+starts executing the program.)</p>
+
+<p>JavaScript even has something like "function literals," that is a way of
+writing a function data value just at the point where you need it, without
+giving it a name or defining it with a standard function definition.  Such
+functions are called <span class="newword">anonymous functions</span>. The
+syntax looks like a function definition without a name. Here, for example,
+an anonymous function is created and passed as the first parameter to a
+function named <i>setTimeout</i>:</p>
+
+<pre>setTimeout( function () {
+    alert("Time's Up!");
+}, 5000 );</pre>
+
+
+<p><span class="subsection">Arrays.</span>&nbsp;
+Arrays in JavaScript are more similar to Java <span class="classname">ArrayLists</span>
+than to Java arrays, since a JavaScript array does not have a fixed size, and it comes
+with a large number of methods for performing useful operations the array.  However,
+the basic syntax is the same as Java arrays:  If the value of <i>A</i> is an array,
+then <i>A.length</i> is the current length of the array, and elements of the array
+are referred to as <i>A</i>[0], <i>A</i>[1], <i>A</i>[2], ..., <i>A</i>[<i>A.length</i>&minus;1].
+An array value can be created as a list of values between [&nbsp;and&nbsp;].  For example:</p>
+
+<pre>var A = [ 1, 2, 3, 4, 5 ];
+var B = [ "foo", "bar" ];
+var C = [];
+</pre>
+
+<p class="np">The last line in this example creates an empty array, which initially
+has length zero.  The <i>push</i> method can be used to add a new element to the end of an
+array, increasing its length: <i>A.push</i>(6).  The <i>pop</i> method removes
+and returns the last item: <i>A.pop</i>().</p>
+
+
+
+<p><span class="subsection">Objects.</span>&nbsp;
+JavaScript has objects, but it doesn't exactly have classes, at least not in
+the sense that Java does.  An object is essentially a collection of
+key/value pairs, where a key is a name (like an instance variable or method
+name in Java) that has an associated value.  Note that the value can be an
+ordinary data value or a function (which is just another type of data
+value in JavaScript).  It is possible to make an object value as a list of
+key/value pairs, enclosed by {&nbsp;and&nbsp;}.  For example,
+</p>
+
+<pre>var pt = {  x: 17, y: 42 };
+
+var ajaxData = {
+    url: "http://some.place.org/ajax.php",
+    data: 42,
+    onSuccess: function () { alert("It worked!"); },
+    onFailure: function (error) { alert("Sorry, it failed: " + error); }
+};</pre>
+
+<p class="np">With these definitions, <i>pt</i> is an object.  It has instance
+variables <i>pt.x</i>, with value 17, and <i>pt.y</i> with value 42.  <i>ajaxData</i>
+is another object with instance variables including <i>ajaxData.url</i>
+and <i>ajaxData.onSuccess</i>.  The value of <i>ajaxData.onSuccess</i>
+is a function, created here as an anonymous function.
+Objects, by the way, are open in the sense that you can add
+a new instance variable to an existing object at any time just by assigning
+a value.  For example, given the object <i>pt</i> defined above, you could
+say</p>
+
+<pre>pt.z = 84;
+</pre>
+
+<p class="np">to add <i>z</i> as an instance variable in the object with
+value 84.  By the way, the term "instance variable" is not usually used
+in JavaScript; the preferred term is <span class="newword">property</span>.</p>
+
+<p>Although JavaScript doesn't (quite) have classes, it does have constructors,
+which can be called with the <i>new</i> operator to create objects.
+For example, </p>
+
+<pre>var now = new Date();</pre>
+
+<p class="np">This calls the constructor <i>Date</i>(), which is a standard part
+of JavaScript.  When called with no parameters, <i>new&nbsp;Date</i>() constructs
+an object that represents the current date and time.</p>
+
+<p>A constructor is written like an ordinary function; by convention, the name of
+a constructor function begins with an upper case letter.  In some sense,
+a constructor actually defines a class.  <i>Date</i>, for example, is often
+referred to as a class.  It is possible to write a function that can be used
+as a constructor, and doing so defines something that is as close to a class
+as JavaScript comes.  For example, let's see how to define a class to
+represent points in 2D:</p>
+
+<pre>function Point2D(x,y) {
+    if (x) {
+        this.x = x;
+    }
+    else {
+        this.x = 0;
+    }
+    if (y) {
+        this.y = y;
+    }
+    else {
+        this.y = 0;
+    }
+    this.move = function(dx,dy) {
+        this.x = this.x + dx;
+        this.y = this.y + dy;
+    }
+}</pre>
+
+<p class="np">When called with the <i>new</i> operator, this function creates
+an object that has properties <i>x</i>, <i>y</i>, and <i>move</i>.
+The fact that the value of <i>move</i> is a function makes it more like
+an instance method than an instance variable.  Consider:</p>
+
+<pre>var p1 = new Point2D(17.42);
+var p2 = new Point2D();
+</pre>
+
+<p class="np">The values of these variables are objects, and we would
+say that they are "objects of type <span class="classname">Point2D".  </span><i>p1.x</i>
+is 42 and <i>p1.y</i> is 17.  Calling <i>p1.move</i>(1,2) will change
+the values of the properties to <i>p1.x = 18</i> and <i>p1.y = 43</i>.
+(It is also possible to change these variables directly with assignment
+statements.)  Note that <i>p2</i> is created with the default value of zero
+for <i>p2.x</i> and <i>p2.y</i>.</p>
+
+<p>The definition of the <i>move</i> method in this example is not done
+in the best way possible.  The problem is that every object of type
+<span class="classname">Point2D</span> gets its own copy of <i>move</i>.
+That is, the code that defines <i>move</i> is duplicated for each
+object that is created.  The solution is to use something called the
+<span class="newword">prototype</span> of the function <i>Point2D</i>.
+This takes us farther than I want to go into programming with objects,
+but here is a more efficient definition:
+</p>
+
+<pre>function Point2D(x,y) {
+    if (x) {
+        this.x = x;
+    }
+    else {
+        this.x = 0;
+    }
+    if (y) {
+        this.y = y;
+    }
+    else {
+        this.y = 0;
+    }
+}
+
+Point2D.prototype.move = function(dx,dy) {
+    this.x = this.x + dx;
+    this.y = this.y + dy;
+}
+</pre>
+    
+<p class="np">The properties of the prototype are shared by all objects
+of type <span class="classname">Point2D</span>.  In this case, there
+is only one copy of <i>move</i>, which is used by all such objects.</p>
+
+<p>Although writing "classes" in JavaScript is very different from writing
+them in Java, using classes once you have them is pretty much the same in
+both languages.</p>
+
+<p>A few more comments:  Making things that act like subclasses is tricky,
+but possible.  I won't discuss it here.  The special variable <i>this</i>
+is subtly different in JavaScript from <i>this</i> in Java.  One consequence
+is that when defining methods in JavaScript, instance variables and
+instance methods can only be referred to using <i>this</i>.  If <i>x</i>
+is an instance variable, for example, it has to be referenced as <i>this.x</i>
+in the method definition.</p>
+
+
+</div>
+
+
+
+<div class="subsection">
+<h3>JavaScript on Web Pages</h3>
+<p>There are three ways to include JavaScript code on web pages (that is, in HTML files).
+First, you can include it inside &lt;script&gt; elements, which have the form</p>
+<pre>&lt;script type="text/javascript"&gt;
+    
+    // ... JavaScript code goes here ...
+    
+&lt;/script&gt;
+</pre>
+
+<p class="np">Second, you can put JavaScript code in a separate file, usually with a
+name ending with ".js", and import that
+file into the web page.  A JavaScript file can be imported using a variation of the
+&lt;script&gt; tag that has the form
+</p>
+
+<pre>&lt;script type="text/javascript" src="filename.js"&gt;&lt;/script&gt;
+</pre>
+
+<p class="np">where "filename.js" should be replaced by the URL, relative or
+absolute, of the JavaScript file.  The closing tag, &lt;/script&gt, is
+required here to mark the end of the script, even though it is <b>not</b> permitted
+to have any code inside the script element.  (If you do, it will be ignored.)
+Importing JavaScript code from a file in this way has the same effect as typing the
+code from the file directly into the web page.
+</p>
+
+<p>Script elements of either type are often included in the &lt;head&gt; section of
+an HTML file, but they can actually occur at any point, and you can use any number
+of script elements on the same page.</p>
+
+<p>The third way to use JavaScript on a web page is in <span class="newword">event
+handlers</span> that can occur inside HTML elements.  For example, consider</p>
+
+<pre>&lt;h1 onclick="doClickHeader()"&gt;My Web Page&lt;/h1&gt;
+</pre>
+
+<p class="np">Here, the <i>onclick</i> handler defines an event handler that will
+be executed when the user clicks on the text of the &lt;h1&gt; element.  The value
+of an event handler attribute such as <i>onclick</i> can be any JavaScript code.
+It can include multiple statements, separated by semicolons, and can even extend over several lines.
+Here, the code is <tt>doClickHandler()</tt>, so that clicking the &lt;h1&gt; element
+will cause the JavaScript function <i>doClickHandler</i>() to be called.  I should note
+that this is not the only way to attach a JavaScript function to an event, and it is
+considered a somewhat old-fashioned way of doing so.  However, I will use it occasionally.</p>
+
+<p>It is important to understand that all the JavaScript code in &lt;script&gt; elements,
+including code in imported files, is read and executed as the page is being loaded.  Usually,
+most of the code in such scripts consists of variable initializations and the definitions
+of functions that are meant to be called after the page has loaded, in response to events.
+Furthermore, all the scripts on a page are part of the same program.  For example, you
+can define a variable or function in one script, even in an imported file, and then use
+it in another script.</p>
+
+<hr class="break">
+    
+<p>JavaScript on web pages includes several standard functions that allow you to
+interact with the user using dialog boxes.  The simplest of these is
+<i>alert</i>(<i>message</i>), which will display <i>message</i> to the user
+in a pop-up dialog box, with an "OK" button that the user can click to dismiss the
+message.</p>
+
+<p>The function <i>prompt</i>(<i>question</i>) will display <i>question</i> in a dialog
+box, along with an input field where the user can enter a response.  The <i>prompt</i>
+function returns the user's response as its return value.   This type of dialog
+box comes with an "OK" button and with a "Cancel" button.  If the user hits
+"Cancel", the return value from <i>prompt</i> is <i>null</i>.  If the user hits
+"OK", the return value is the content of the input field, which might be the empty
+string.</p>
+
+<p>The function <i>confirm</i>(<i>question</i>) displays <i>question</i> in a dialog
+box along with "Yes" and "Cancel" buttons.  The return value is <i>true</i> or
+<i>false</i>, depending on whether the user hits "OK" or "Cancel".</p>
+
+<p>Here, for example, is a simple guessing game that uses these functions for
+user interaction:</p>
+
+<pre>alert("I will pick a number between 1 and 100.\n"
+         + "Try to guess it!");
+         
+do {
+
+    var number = Math.floor( 1 + 100*Math.random() );
+    var guesses = 1;
+    var guess = Number( prompt("What's your guess?") );
+    while (guess != number ) {
+        if ( isNaN(guess) || guess &lt; 1 || guess &gt; 100 ) { 
+            guess = Number( prompt("Please enter an integer\n"
+                              + "in the range 1 to 100") );
+        }
+        else if (guess &lt; number) {
+            guess = Number( prompt("Too low.  Try again!") );
+            guesses++;
+        }
+        else {
+            guess = Number( prompt("Too high.  Try again!") );
+            guesses++;
+        }
+    }
+    alert("You got it in " + guesses + " guesses.");
+    
+} while ( confirm("Play again?") );
+</pre>
+
+<p class="np">(This program uses <i>Number</i>() to convert the user's
+response to a number.  If the response is <i>null</i> or empty or cannot be
+parsed as a number, then the value will be the non-a-number value <i>NaN</i>.
+The function <i>isNaN</i>(<i>guess</i>) is used to check whether the value
+of <i>guess</i> is this special non-a-number value.  It's not possible to do
+that by saying <span class="nb">"if (guess == NaN)"</span> since the
+expression <span class="nb">NaN == NaN</span> evaluates to <i>false</i>!
+The same, by the way, is true of the non-a-number value in Java.)
+</p>
+
+<hr class="break">
+    
+<p>You can try out JavaScript code in <span class="newword">JavaScript consoles</span> that
+are available in many web browsers.  In Firefox, for example, you can access a console
+with the "Tools" / "Web&nbsp;Developer" / "Web Console" command.  This will show the
+web console at the bottom of the Firefox window, with a JavaScript input field at the
+very bottom.  When you type a line of JavaScript and press return, it is executed, and its
+value is output in the console.  The code is evaluated in the context of the current web
+page, so you can even enter commands that affect that page.  The Web console also shows
+JavaScript errors that occur when code on the current web page is executed, and JavaScript
+code can write a message to the console by calling <i>console.log</i>(<i>message</i>)</i>,
+so the console is very useful for debugging.  (Note: Once your code is running, you should
+remove the <i>console.log</i> commands, since they can cause errors on some browsers.)
+The Firefox Web Developer tools include many useful features, and you might want to keep
+the console available while working on your code.  Note that you can detach the
+developer tools into a separate window, if you want.
+</p>
+
+<p>The Chrome browser has its own set of developer tools.  Its JavaScript console
+can be accessed under "Tools" / "JavaScript&nbsp;Console".  In the Safari browser,
+use "Show&nbsp;Error&nbsp;Console" in the "Develop" menu (but note that the
+Develop menu has to be enabled in the Safari Preferences, under the "Advanced" tab).
+In Internet Explorer (version 8 and higher), access its "Developer Tools" by hitting
+the F12 key.</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Working with the Web Page</h3>
+
+<p>JavaScript code on a web page can manipulate the content and the style of
+that page.  It can do this because of the <span class="newword">DOM</span>
+(<span class="newword">Document Object Model</span>).  When a web page is loaded,
+everything on the page is encoded into a data structure, defined by the DOM,
+which can be accessed from JavaScript as a collection of objects.  There are
+several ways to get references to these object, but I will discuss only one:
+<i>document.getElementById</i>.  Any element on a web page can have an <i>id</i>
+attribute.  For example:</p>
+
+<pre>&lt;img src="somepicture.jpg" id="pic"&gt;</pre>
+
+<p class="np">or</p>
+
+<pre>&lt;h1 id="mainhead"&gt;My Page&lt;/h1&gt;</pre>
+
+<p class="np">An id should be unique on the page, so that an element is uniquely
+identified by its id.  Any element is represented by a DOM object.  If an element
+has an id, you can obtain a reference to that element by passing
+the id to the function <i>document.getElementById</i>.  For example:</p>
+
+<pre>var image = document.getElementById("pic");
+var heading = document.getElementById("mainhead");
+</pre>
+
+<p>Once you have a DOM object, you can use it to manipulate the element that it
+represents.  For example, the content of the element is given by the
+<i>innerHTML</i> property of the object.  The value is a string containing
+text or HTML code.  In our example, the value of
+<i>heading.innerHTML</i> is the string "My&nbsp;Page".  Furthermore, you
+can assign a value to this property, and doing so will change the content
+of the element. For example:</p>
+
+<pre>heading.innerHTML = "New Headline!";
+</pre>
+
+<p class="np">This does not just change the value of the property in the object;
+it actually changes the text that is displayed on the web page!  This will seem odd
+to a Java programmer: It's an assignment statement that has a side effect.  But that's
+the way the DOM works.  A change to the DOM data structure that represents a web
+page will actually modify the page and change its display in the web browser.</p>
+
+<p>Some attributes of elements become properties of the objects that represent them.
+This is true for the <i>src</i> attribute of an image element, so that in our
+example, we could say</p>
+
+<pre>image.src = "anotherpicture.jpg";
+</pre>
+
+<p class="np">to change the source of the image element.  Again, this is a "live"
+assignment: When the assignment statement is executed, the image on the web page
+changes.</p>
+
+<p>The DOM object for an element has a property named <i>style</i> that is itself
+an object, representing the CSS style of the object.   The <i>style</i> object
+has properties such as <i>color</i>, <i>backgroundColor</i>, and <i>fontSize</i>
+representing CSS properties.  By assigning values to these properties, you can
+change the appearance of the element on the page.  For example,</p>
+
+<pre>heading.color = "red";
+heading.fontSize = "150%";
+</pre>
+
+<p class="np">will make the text in the &lt;h1&gt; element red and 50% larger than usual.
+The value of a style property must be a string that would be a legal value for the corresponding
+CSS style.
+</p>
+
+<p>Most interesting along these lines, perhaps, are properties of input elements, since
+they make it possible to program interaction with the user.  Suppose that on a web page, we have</p>
+
+<pre>&lt;input type="text" id="textin"&gt;
+
+&lt;select id="sel"&gt;
+   &lt;option&gt;Option 1&gt;&lt;/option&gt;
+   &lt;option&gt;Option 2&gt;&lt;/option&gt;
+   &lt;option&gt;Option 3&gt;&lt;/option&gt;
+&lt;/select&gt;
+
+&lt;input type="checkbox" id="check"&gt;
+</pre>
+
+<p class="np">and in JavaScript</p>
+
+<pre>var textin = document.getElementById("textin");
+var sel = document.getElmenntById("sel");
+var check = document.getElementById("check");
+</pre>
+
+<p class="np">Then the value of the property <i>checkbox.checked</i> is a boolean that
+can be tested to determine whether the checkbox is checked or not, and its value can
+be set to check or uncheck the box programmatically.  The value of
+<i>checkbox.disabled</i> is a boolean that tells whether the checkbox is disabled.
+(The user can't change the value of a disabled checkbox.)  Again, you can both test
+and set this value.  The properties <i>sel.disabled</i> and <i>textin.disabled</i> do
+the same thing for the &lt;select&gt; menu and the text input box.
+The properties <i>textin.value</i> and <i>sel.value</i> give the current values of
+those elements.  The value of a text input is the text that is currently in the box.
+The value of a &lt;select&gt; element is the value of the currently selected
+option.  As an example, here is complete source code for a web page that implements a
+guessing game using a text input box and buttons:</p>
+
+<pre>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;title&gt;Guessing Game&lt;/title&gt;
+&lt;script type="text/javascript"&gt;
+    "use strict";
+    var number = Math.floor( 1 + 100*Math.random() );
+    var guessCount = 0;
+    var guessMessage = "Your guesses so far: ";
+    function guess() {
+        var userNumber = Number( document.getElementById("guess").value );
+        document.getElementById("guess").value = "";
+        if ( isNaN(userNumber) || userNumber &lt; 1 || userNumber &gt; 100 ) {
+            document.getElementById("question").innerHTML =
+               "Bad input!&lt;br&gt;Try again with an integer in the range 1 to 100.";
+        }
+        else if (userNumber == number) {
+            guessCount++;
+            document.getElementById("question").innerHTML =
+                "You got it in " + guessCount + " guesses. " +
+                userNumber + " is correct.&lt;br&gt;" + 
+                "I have picked another number.  Make a guess!";
+            number = Math.floor( 1 + 100*Math.random() );
+            guessCount = 0;
+            guessMessage = "Your guesses so far: ";
+            document.getElementById("message").innerHTML = "";
+        }
+        else if (userNumber &lt; number) {
+            guessCount++;
+            document.getElementById("question").innerHTML =
+                userNumber + " is too low.&lt;br&gt;Try again.";
+            guessMessage += " " + userNumber;
+            document.getElementById("message").innerHTML = guessMessage;
+        }
+        else {
+            guessCount++;
+            document.getElementById("question").innerHTML =
+                userNumber + " is too high.&lt;br&gt;Try again.";
+            guessMessage += " " + userNumber;
+            document.getElementById("message").innerHTML = guessMessage;
+        }
+    }
+&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;p id="question"&gt;I will pick a number between 1 and 100&lt;br&gt;
+     Try to guess it.  What is your first guess?&lt;/p&gt;
+    &lt;p&gt;&lt;input type="text" id="guess"&gt;
+       &lt;button onclick="guess()"&gt;Make Guess&lt;/button&gt;&lt;/p&gt;
+    &lt;p id="message"&gt;&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+
+<hr class="break">
+    
+<p>Here's one problem with some of my discussion.  Suppose that a script uses
+<i>document.getElementById</i> to get the DOM object for some HTML element. If that
+script is executed before the page has finished loading, the element that it is
+trying to access might not yet
+exist.  And remember that scripts are executed as the page is loading.  Of course,
+one solution is to call <i>document.getElementById</i> only in functions that
+are executed after the page is complete; that's what I did in the previous example.
+But sometimes, you want to assign a DOM object to a global variable.  Where should
+you do that?  One possibility is to put the script at the end of the page.  That
+will probably work.  Another, more common technique is to put the assignment into
+a function and arrange for that function to run after the page has finished loading,
+when it will be safe.  To do that, you have to work with events.  When the browser
+has finished loading the page and building its DOM representation, it fires a
+<i>load</i> event.  You can arrange for some JavaScript code to be called to
+respond to that event.  A common way of doing this is to add an <i>onload</i>
+event-handler to the &lt;body&gt; tag:
+</p>
+
+<pre>&lt;body onload="init()"&gt;
+</pre>
+
+<p class="np">This will call a function named <i>init</i> when the page has loaded.
+You would provide a definition for the function that includes any initialization
+code that your program needs.</p>
+
+<p>You can define similar event-handlers in other elements.
+For &lt;input&gt; and &lt;select&gt; elements,
+you can supply an <i>onchange</i> event-handler that will be executed when
+the user changes the value associated with the element.  For example, this
+allows you to respond when the user checks or unchecks a checkbox or selects
+a new option from a select menu.  I mentioned the
+<i>onclick</i> event-handler above, which can be applied to any visible element but
+is probably most useful for buttons.  There are several other events that
+are generated by the mouse.  For example, <i>onmouseover</i> is for the
+event that occurs when the mouse is moved into an element, and
+<i>onmouseout</i> is for when the mouse moves out of the element.  It might
+be worth mentioning that in the event-handling code, the special variable
+<i>this</i> can be used to refer to the element on which the event occurs.
+For example:
+</p>
+
+<pre>&lt;p onmouseover="this.style.backgroundColor='yellow'"
+       onmouseout="this.style.backgroundColor='white'"&gt;
+    Move your mouse over me!
+&lt;/p&gt;
+</pre>
+
+<p class="np">Furthermore, a mouse event handler can use a special variable <i>event</i>
+to refer to an object that contains information about the event.  For example,
+<i>event.clientX</i> and <i>event.clientY</i> give the location of the mouse
+in the browser window:</p>
+
+<pre>&lt;p onclick="alert( 'Clicked at ' + event.clientX + ',' + event.clientY )"&gt;
+    Click me!
+&lt;/p&gt;
+</pre>
+
+<p class="np">Of course, it would be more likely to call a function in response to the event,
+as in <tt>onclick="doClick(event)"</tt>.</p>
+
+<p>As nice as all this is, it's not the preferred way of setting up event handling.
+For one thing, the mixing of JavaScript code and HTML code is often considered to be
+bad style.  And there is another way to do it that offers more flexibility:
+Use the <i>addEventListener</i> function, which is defined as a method in DOM objects (at least
+in modern browsers, including all of those that support the HTML canvas element).  If <i>elem</i>
+is a DOM object representing some element, you can, for example, use the following statement
+to set up event-handling for mouse-click events on that element:</p>
+
+<pre>elem.addEventListener( "click", handler, false );
+</pre>
+
+<p class="np">The first parameter is a string that gives the name of the event. The name is
+the same as the name of the event attribute in HTML, with "on" stripped off the front:
+<i>onclick</i> becomes "click".  The second parameter is the function that will be called
+when the event occurs.  It can be given as the name of a function or as an
+anonymous function.  The event object will be passed to that function as a parameter.
+The third parameter is harder to explain and will, for our purposes, always be false.</p>
+
+<p>This technique is more flexible because of the third, boolean parameter (which I'm not
+about to explain) and because it allows you to set up more than one event handler for
+the same event.</p>
+
+</div>
+
+
+
+<p class="nav">[
+<a href="03_Java_Hierarchical.html">Previous Section</a> |
+<a href="05_Canvas_2D.html">Next Section</a> |
+<a href="index.html">Index</a>
+]</p>
+
+</div>
+
+</body>
+</html>

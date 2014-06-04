@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Simple IFS Model Viewer</title>
+
+<script type="x-shader/x-vertex" id="vshader">
+     attribute vec3 coords;
+     uniform mat4 modelview;
+     uniform mat4 projection;
+     uniform bool lit;
+     attribute vec3 normal;
+     uniform mat3 normalMatrix;
+     uniform vec4 color;
+     varying vec4 vColor;
+     void main() {
+        vec4 coords = vec4(coords,1.0);
+        vec4 transformedVertex = modelview * coords;
+        gl_Position = projection * transformedVertex;
+        if (lit) {
+           vec3 unitNormal = normalize(normalMatrix*normal);
+           float multiplier = abs(unitNormal.z);
+           vColor = vec4( multiplier*color.r, multiplier*color.g, multiplier*color.b, color.a );
+        }
+        else {
+            vColor = color;
+        }
+     }
+</script>
+<script type="x-shader/x-fragment" id="fshader">
+     precision mediump float;
+     varying vec4 vColor;
+     void main() {
+         gl_FragColor = vColor;
+     }
+</script>
+
+
+<script type="text/javascript" src="gl-matrix-min.js"></script>
+<script type="text/javascript" src="basic-objects-IFS.js"></script>
+<script type="text/javascript" src="simple-rotator.js"></script>
+
+<script type="text/javascript">
+
+"use strict";
+
+var gl;   // The webgl context.
+
+var aCoords;           // Location of the coords attribute variable in the shader program.
+var aCoordsBuffer;     // Buffer to hold coords.
+var aNormal;           // Location of the normal uniform in the shader program.
+var aNormalBuffer;     // Buffer to hold normal vectors.
+var indexBuffer;       // Buffer to hold indices for gl.drawElements
+var uColor;            // Location of the color uniform variable in the shader program.
+var uProjection;       // Location of the projection uniform matrix in the shader program.
+var uModelview;        // Location of the modelview unifirm matrix in the shader program.
+var uLit;              // Location of the lit uniform in the shader program.
+var uNormalMatrix;     // Location of the normalMatrix uniform matrix in the shader program.
+
+var projection = mat4.create();   // projection matrix
+var modelview = mat4.create();    // modelview matrix
+var normalMatrix = mat3.create(); // matrix, derived from modelview matrix, for transforming normal vectors
+
+var rotator;   // A SimpleRotator object to enable rotation by mouse dragging.
+
+var currentModelData; // The object that holds the IFS data for the currently displayed model.
+
+/**
+ * Draws the image, which consists of a single model object.
+ */
+function draw() {
+    gl.clearColor(0,0,0,1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    
+    mat4.perspective(projection, Math.PI/4, 1, 30, 70);
+    gl.uniformMatrix4fv(uProjection, false, projection );
+
+    var modelview = rotator.getViewMatrix();
+    gl.uniformMatrix4fv(uModelview, false, modelview );
+
+    mat3.normalFromMat4(normalMatrix, modelview);
+    gl.uniformMatrix3fv(uNormalMatrix, false, normalMatrix);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,indexBuffer);  // specifies index data location
+    gl.drawElements(gl.TRIANGLES, currentModelData.indices.length, gl.UNSIGNED_SHORT, 0);
+}
+
+
+/**
+ * Called when the setting of the "Lit" checkbox is changed.
+ */
+function changeLit() {
+     if (document.getElementById("litCheckbox").checked)
+        lit = 1;
+     else
+        lit = 0;
+     draw();
+}
+
+/**
+ * Called when the user changes the selection in the model-selection pop-up.
+ * The data for the model are copied into the appropriate buffers, and the
+ * scene is redrawn.
+ */
+function installModel() {
+     var model = document.getElementById("modelSelect").value;
+     var modelData;
+     if (model == "Teapot") {
+        modelData = teapotModel;
+     }
+     else if (model == "Sphere") {
+        modelData = uvSphere(12);
+     }
+     else if (model == "Torus") { 
+        modelData = uvTorus(12);
+     }
+     else if (model == "Cylinder") {
+       modelData = uvCylinder(10);
+     }
+     else if (model == "Cone") {
+        modelData = uvCone(10);
+     }
+     else if (model == "Cube") {
+        modelData = cube(18);
+     }
+     else if (model == "Ring") {
+        modelData = ring(6,12,64);
+     }
+     gl.bindBuffer(gl.ARRAY_BUFFER, aCoordsBuffer);
+     gl.bufferData(gl.ARRAY_BUFFER, modelData.vertexPositions, gl.STATIC_DRAW);
+     gl.vertexAttribPointer(aCoords, 3, gl.FLOAT, false, 0, 0);
+     gl.bindBuffer(gl.ARRAY_BUFFER, aNormalBuffer);
+     gl.bufferData(gl.ARRAY_BUFFER, modelData.vertexNormals, gl.STATIC_DRAW);
+     gl.vertexAttribPointer(aNormal, 3, gl.FLOAT, false, 0, 0);
+     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,indexBuffer);
+     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, modelData.indices, gl.STATIC_DRAW);
+     currentModelData = modelData;
+     draw();
+}
+
+/* Creates a program for use in the WebGL context gl, and returns the
+ * identifier for that program.  If an error occurs while compiling or
+ * linking the program, an exception of type String is thrown.  The error
+ * string contains the compilation or linking error.  If no error occurs,
+ * the program identifier is the return value of the function.
+ */
+function createProgram(gl, vertexShaderSource, fragmentShaderSource) {
+   var vsh = gl.createShader( gl.VERTEX_SHADER );
+   gl.shaderSource(vsh,vertexShaderSource);
+   gl.compileShader(vsh);
+   if ( ! gl.getShaderParameter(vsh, gl.COMPILE_STATUS) ) {
+      throw "Error in vertex shader:  " + gl.getShaderInfoLog(vsh);
+   }
+   var fsh = gl.createShader( gl.FRAGMENT_SHADER );
+   gl.shaderSource(fsh, fragmentShaderSource);
+   gl.compileShader(fsh);
+   if ( ! gl.getShaderParameter(fsh, gl.COMPILE_STATUS) ) {
+      throw "Error in fragment shader:  " + gl.getShaderInfoLog(fsh);
+   }
+   var prog = gl.createProgram();
+   gl.attachShader(prog,vsh);
+   gl.attachShader(prog, fsh);
+   gl.linkProgram(prog);
+   if ( ! gl.getProgramParameter( prog, gl.LINK_STATUS) ) {
+      throw "Link error in program:  " + gl.getProgramInfoLog(prog);
+   }
+   return prog;
+}
+
+
+/* Gets the text content of an HTML element.  This is used
+ * to get the shader source from the script elements that contain
+ * it.  The parameter should be the id of the script element.
+ */
+function getTextContent( elementID ) {
+    var element = document.getElementById(elementID);
+    var fsource = "";
+    var node = element.firstChild;
+    var str = "";
+    while (node) {
+        if (node.nodeType == 3) // this is a text node
+            str += node.textContent;
+        node = node.nextSibling;
+    }
+    return str;
+}
+
+
+function init() {
+   try {
+        var canvas = document.getElementById("glcanvas");
+        gl = canvas.getContext("webgl");
+        if ( ! gl ) {
+            gl = canvas.getContext("experimental-webgl");
+        }
+        if ( ! gl ) {
+            throw "Could not create WebGL context.";
+        }
+        var vertexShaderSource = getTextContent("vshader"); 
+        var fragmentShaderSource = getTextContent("fshader");
+        var prog = createProgram(gl,vertexShaderSource,fragmentShaderSource);
+        gl.useProgram(prog);
+        aCoords =  gl.getAttribLocation(prog, "coords");
+        aNormal =  gl.getAttribLocation(prog, "normal");
+        uModelview = gl.getUniformLocation(prog, "modelview");
+        uProjection = gl.getUniformLocation(prog, "projection");
+        uColor =  gl.getUniformLocation(prog, "color");
+        uLit =  gl.getUniformLocation(prog, "lit");
+        uNormalMatrix =  gl.getUniformLocation(prog, "normalMatrix");
+        aCoordsBuffer = gl.createBuffer();
+        aNormalBuffer = gl.createBuffer();
+        indexBuffer = gl.createBuffer();
+        gl.uniform4fv(uColor, [1,1,1,1]);  // does not change in this program.
+        gl.uniform1i(uLit, 1);  // does not change in this program.
+        gl.enableVertexAttribArray(aCoords);  // also won't change.
+        gl.enableVertexAttribArray(aNormal);  // also won't change.
+        gl.enable(gl.DEPTH_TEST);
+        rotator = new SimpleRotator(canvas,draw);
+        rotator.setView( [1,1,2], [0,1,0], 50 );
+   }
+   catch (e) {
+      document.getElementById("message").innerHTML =
+           "Could not initialize WebGL: " + e;
+      return;
+   }
+   document.getElementById("modelSelect").value = "Teapot";
+   installModel();
+   draw();
+}
+
+
+
+</script>
+</head>
+<body onload="init()" style="background-color:#DDD">
+
+<h2>Simple Model Viewer</h2>
+
+<noscript><hr><h3>This page requires Javascript and a web browser that supports WebGL</h3><hr></noscript>
+
+<p id="message" style="font-weight:bold">Drag your mouse on the model to rotate it.</p>
+
+<p>Select the Model:
+   <select id="modelSelect" onchange="installModel()">
+      <option>Teapot</option>
+      <option>Sphere</option>
+      <option>Torus</option>
+      <option>Cylinder</option>
+      <option>Cone</option>
+      <option>Cube</option>
+      <option>Ring</option>
+   </select>
+   <button onclick="rotator.setView( [1,1,2], [0,1,0], 50 ); draw()" style="margin-left:2cm">Reset View</button>
+</p>
+
+
+<div>
+
+    <canvas width=600 height=600 id="glcanvas" style="background-color:blue"></canvas>
+
+</div>
+
+
+</body>
+</html>
+

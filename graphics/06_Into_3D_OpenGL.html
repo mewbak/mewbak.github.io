@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GraphicsNotes 2013 -- Section 6: Into 3D with OpenGL</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body>
+
+<div class="section">
+    
+<h2>Section 6:&nbsp;&nbsp; Into 3D with OpenGL</h2>
+
+<p>It's time to move on to 3D.  We will do this by looking at <span class="newword">OpenGL</span>, a common
+and widely supported 3D graphics API.  OpenGL was introduced in 1992 and has
+undergone a lot of changes recently.  In fact, we will work for now with
+the original version, OpenGL&nbsp;1.0, much of which is removed from
+the most modern versions, except as an optional module in some versions.  However, the
+newer OpenGL standard is a difficult entry into 3D for beginners.  And
+OpentGL&nbsp;1.0 is still widely supported, so it makes sense to begin
+with that.</p>
+
+<p>Currently, OpenGL is implemented in the graphics hardware of most
+desktop and laptop computers.  In practice, they all support OpenGL&nbsp;1.0
+as well as newer versions.  (Graphics cards can support other graphics APIs
+at the same time as OpenGL, including DirectX, the standard graphics library
+for Windows.)  Handheld computing devices such as smart phones
+and tablets often implement <span class="newword">OpenGL&nbsp;ES</span>, a version for "embedded systems."
+OpenGL&nbsp;ES&nbsp;1.0 was based on OpenGL&nbsp;1.3 and includes most of
+OpenGL&nbsp;1.0.  OpenGL&nbsp;ES&nbsp;2.0 is <b>not</b> compatible with
+OpengGL&nbsp;1.0.  Newer Android and iOS devices support both OpenGL&nbsp;ES&nbsp;1.0
+and 2.0, while older devices only supported&nbsp;1.0.  There is also <span class="newword">WebGL</span>, which
+is a technology for 3D graphics on Web pages.  It is pretty much the same as
+OpenGL&nbsp;ES&nbsp;2.0, with some adaptations to the Web environment.  It is now
+supported pretty well in Firefox, Chrome, and Safari.  Although it is not yet in Internet Explorer,
+it should be included in IE&nbsp;11.
+</p>
+
+<p>OpenGL is a very low-level graphics API, similar to the 2D APIs we have
+covered.  That is, it has only very basic drawing operations and no
+built-in support for scene graphs or object oriented graphics.  The plan
+for the rest of the course is to use old-fashioned OpenGL to learn about
+3D graphics fundamentals. Then, we'll spend time on some higher-level 3D graphics
+systems, more similar to what most graphics programmers and designers will
+use for their work.  After that, we'll come back to OpenGL to cover its
+more modern features.</p>
+
+<p>Remember that when I say "OpenGL" for the time being, I mean "OpenGL 1.0."  OpenGL&nbsp;1.0
+is a large API, and I will only cover a small part of it.  The goal is to introduce 3D graphics concepts,
+not to fully cover the API.</p>
+
+<div class="subsection">
+<h3>Introduction to OpenGL and 3D Drawing</h3>
+
+<p>OpenGL consists of a large number of subroutines.  It also comes with a large number of
+named constants for use in subroutine calls.  The API is defined in the C programming language,
+but there are "bindings" for many other languages that make it possible to use OpenGL from
+those languages.  For example, the OpenGL binding for Java is called <span class="newword">JOGL</span>.
+In this section, I will use the C API; I will introduce JOGL in the next section.  I&nbsp;also
+note here that OpenGL is purely an API for drawing.  It includes nothing about creating windows in which
+to draw or interacting with the user; again, that is something we will deal with in the next
+section.  For now, we limit discussion to drawing with the OpenGL&nbsp;1.0 API.
+</p>
+
+<p>In a two dimensional coordinate system, points are given by a pair of coordinates,
+conventionally called <i>x</i> and <i>y</i>,
+and there are two coordinate axes, the <i>x</i>-axis and the <i>y</i>-axis.
+In three dimensions, you need three coordinates to specify a point.  The third coordinate
+is usually called <i>z</i>, and the third dimension is represented by a third axis,
+the <span class="newword"><i>z</i>-axis</span>, which is perpendicular to both
+the <i>x</i>-axis and the <i>y</i>-axis.  All three axes intersect at the point (0,0,0),
+which is called the <span class="newword">origin</span>.  In the usual OpenGL setup,
+the <i>x</i> and <i>y</i>-axes lie on the viewing surface (such as your computer screen).
+The positive direction of the <i>x</i>-axis points to the right, and the positive
+direction of the <i>y</i>-axis points upward (not down, as in the Java and Canvas APIs).
+The <i>z</i>-axis is perpendicular to the screen.  The positive direction of the
+<i>z</i>-axis points outward from the screen, towards the viewer, and the negative
+direction extends behind the screen.</p>
+
+<p>In the default coordinate system, <i>x</i>, <i>y</i>, and <i>z</i> are all limited
+to the range &minus;1&nbsp;to&nbsp;1.  Anything drawn inside this cube is
+<span class="newword">projected</span> onto the two-dimensional drawing surface
+for viewing.  Anything drawn outside the cube is <span class="newword">clipped</span>
+and does not appear in the displayed 2D image.  The projection is done, by default,
+by simply discarding the <i>z</i>-coordinate.  Of course, all of these defaults can
+be changed, as we will see.  (Saying that the <i>z</i>-axis points out of the screen
+by default is a little misleading.  The truth, which you
+should probably ignore, is that the actual default
+coordinate system&mdash;the one that you get if you make no changes at all&mdash;is
+a left-handed system with positive z pointing into the screen.  However, the conventional
+way to set up a non-default projection includes a <i>z</i>-axis flip that changes the coordinate
+system to right-handed, and OpenGL programmers think in terms of a right-handed
+system.)</p>
+
+<p>OpenGL can draw only points, lines, and triangles.  Anything else has to built up
+out of these very simple shapes.  (Actually, OpenGL&nbsp;1.0 can also draw quadrilaterals
+and polygons, but they are easy to construct from triangles and have been dropped from
+modern OpenGL, so I ignore them here.)  Let's jump right in and see how to
+draw a triangle:</p>
+
+<pre>
+glBegin(GL_TRIANGLES);
+glVertex3f(1,0,0);
+glVertex3f(0,1,0);
+glVertex3f(0,0,1);
+glEnd();
+</pre>
+
+<p class="np">This draws the triangle with vertices at the 3D points
+(1,0,0), (0,1,0), and (0,0,1).
+There is already a lot here to talk about.  A shape is drawn by specifying
+a sequence of <span class="newword">vertices</span> between calls to
+<i>glBegin</i>() and <i>glEnd</i>().  The parameter to <i>glBegin</i>() is a
+constant that tell what kind of shape to draw.  In OpenGL terms, the parameter
+specifies which <span class="newword">primitive</span> to draw.
+Note that <i>GL_TRIANGLES</i> is plural.  It can be used to draw
+several triangles with one <i>glBegin/glEnd</i>.  With three vertices, it produces
+one triangle; with six vertices, it produces two; and so on.  There are
+seven primitives for drawing points, lines, and triangles:
+</p>
+
+<p align="center"><img src="images/06/gl-primitives.png" width="515" height="251"></p>
+
+<p class="np">In this illustration, the vertices are labeled in the order in which they
+would be specified between <i>glBegin</i>() and <i>glEnd</i>().</p>
+
+<p>The <i>GL_TRIANGLES</i> primitive, as
+I've said, produces separate triangles.  <i>GL_TRINAGLE_STRIP</i> produces a strip of
+connected triangles.  After the first vertex, every pair of additional vertices
+adds another triangle.  Note the order of the vertices: Odd numbered vertices are
+on one side of the strip; even number vertices are on the other side.
+In a <i>GL_TRIANGLE_FAN</i>, the first vertex becomes the basis of the fan and is
+connected to all the other vertices.  After the first two vertices, each additional vertex
+will add another triangle to the fan.  Note that triangle fans can be used to
+draw polygons.</p>
+
+<p>Points are easy.  The <i>GL_POINTS</i> primitive produces one point for each
+vertex that is specified.  By default, the size of a point is one pixel.
+With <i>GL_LINES</i>, each pair of vertices produces a line segment joining
+those points.  <i>GL_LINE_STRIP</i> produces a series of line segments
+joining all the vertices.  And <i>GL_LINE_LOOP</i> is similar to <i>GL_LINE_STRIP</i>
+except that one additional line segment is drawn connecting the last vertex to the
+first vertex.  The default width for lines is one pixel.</p>
+
+<hr class="break">
+
+<p>In the above example, each vertex is specified by calling the function
+<i>glVertex3f</i>().  There are actually quite a few functions for specifying
+vertices.  The function names all start with "glVertex".  The suffix, such
+as "3f", gives information about the parameters that are supplied to the function.
+This is a very common pattern in OpenGL, so it's worth paying attention to how
+it works.  In "glVertex3f", the "3" means that 3 numbers will be provided in
+the parameter list, and the "f" means that the numbers are of type <i>float</i>.
+The "f" could be replaced by "d" for numbers of type <i>double</i> or by
+"i" for numbers of type <i>int</i>.  The "3" can be replaced by "2",
+meaning that just two coordinates will be provided.  In that case, the two
+coordinates are <i>x</i> and <i>y</i>, and the <i>z</i> coordinate is
+set to 0, so you are effectively drawing in 2D on the <i>xy</i>-plane.
+For example, to  draw a 1-by-1 square with vertices at 0 and&nbsp;1,
+one could use:
+</p>
+
+<pre>glBegin(GL_TRIANGLE_FAN);
+glVertex2i(0,0);
+glVertex2i(1,0);
+glVertex2i(1,1);
+glVertex2i(0,1);
+glEnd();
+</pre>
+
+<p>There is one more important variation:  It is possible to add a "v" to the end of the
+name.  This means that there will be only one parameter, which will be an array that contains
+the coordinates.  The number of coordinates is still given by a number in the function
+name, not by the length of the array.  In fact, in the C API, the parameter is actually
+a pointer to the data.  In C, arrays and pointers are in many ways interchangeable, and the
+use of a pointer as the parameter adds flexibility to the way the coordinate data can
+be represented.  For example, it is common to put all the coordinate data into one
+big array and to specify individual vertices using pointers that point into the
+middle of the array.  Here's an example for people who know&nbsp;C:</p>
+
+<pre>float coords[] = { 0,0.5, -0.5,-0.5, 0.5,-0.5 };
+
+glBegin(GL_TRIANGLES);
+glVertex2fv(coords);     // array name is a pointer to the start of the array
+glVertex2fv(&amp;coords[2]); // &amp;coords[2] is a pointer to second element in array
+glVertex2fv(&amp;coords[4]); // &amp;coords[4] is a pointer to fourth element in array
+glEnd();
+</pre>
+
+<p class="np">The family of functions with names consisting of "glVertex" with
+all its possible suffixes is often referred to as <i>glVertex*</i>.</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Color</h3>
+
+<p>Functions from the family <i>glColor*</i> can be used to specify colors for
+the geometry that we draw.  For example, <i>glColor3f</i> has as parameters three floating
+points numbers that give the red, green, and blue components of the color as
+numbers in the range 0.0 to&nbsp;1.0.  (In fact, values outside this range are allowed,
+even negative values.  When color values are used in computations, out-of-range values
+will be used as given.  When a color actually appears on the screen, its component
+values are clamped to the range&nbsp;0&nbsp;to&nbsp;1.  That is, values less than zero
+are changed to zero, and values greater than one are changed to one.)</p>
+
+<p>You can add a fourth component to the color by using <i>glColor4f</i>().  The fourth
+component, known as alpha, is not used in the default drawing mode, but it is possible to configure
+OpenGL to use it as the degree of transparency of the color, similarly to the use of the
+alpha component in Java graphics.</p>
+
+<p>If you would like to use integer color values in the range 0 to 255, you can use
+<i>glColor3ub</i>() or <i>glColor4ub</i> to set the color.  In these function names,
+"ub" stands for "unsigned byte."  <span class="newword">Unsigned byte</span> is an eight-bit
+data type with values in the range 0 to 255.</p>
+
+<p>There are also versions of these functions with names ending in "v":
+<i>glColor3fv</i>(), <i>glColor4fv</i>(), <i>glColor3ubv</i>(), <i>glColor4ubv</i>().
+These functions have one parameter that is a pointer to an array that contains the
+color component values.  In fact, there are may other variations in the <i>glColor*</i>
+family of functions, but the one's I have mentioned are probably the most common.
+Here are some examples of commands for setting drawing colors in OpenGL:
+</p>
+
+<pre>glColor3f(0,0,0);         // Draw in black.
+
+glColor3f(1,0,0);         // Draw in red.
+
+glColor3ub(1,0,0);        // Draw in a color just a tiny bit different from
+                          // black.  (The suffix, "ub" or "f", is significant!)
+
+glColor3ub(255,0,0);      // Draw in red.
+
+glColor4f(1, 0, 0, 0.5);  // Draw in transparent red, but only if OpenGL
+                          // has been configured to do transparency.  By
+                          // default this is the same as drawing in plain red.
+
+float darkCyan[] = { 0.0, 0.5, 0.5 };
+glColor3fv(darkCyan);     // Draw in a dark blue/green color.
+</pre>
+
+<p>Using any of these functions sets the value of a "current color."  When you
+generate a vertex with one of the <i>glVertex*</i> functions, the current color
+is saved along with the vertex coordinates as an <span class="newword">attribute</span>
+of the vertex.  We'll see that vertices can have other kinds of attribute as well
+as color.  One interesting point about OpenGL is that colors are associated with
+individual vertices, not with complete shapes.  By changing the current color
+between calls to <i>glBegin</i>() and <i>glEnd</i>(), you can get a shape in which
+different vertices have different color attributes.  When you do this, OpenGL
+will compute the colors of pixels inside the shape by
+<span class="newword">blending</span> the colors of the vertices.  (Again, since
+OpenGL is extremely configurable, I have to note that blending is just the
+default behavior.)  For example, here is a triangle in which the three vertices
+are assigned the colors red, green, and blue:</p>
+
+<p align=center><img src="images/06/triangle.jpg" width="323" height="305"></p>
+
+<p class="np">This image is often used as a kind of "Hello World" example for
+OpenGL.  Here's the C code that was used to draw it:</p>
+
+<pre>
+glBegin(GL_TRIANGLES);
+glColor3f( 1, 0, 0 ); // red
+glVertex2f( -0.5, -0.5 );
+glColor3f( 0, 1, 0 ); // green
+glVertex2f( 0.5, -0.5 );
+glColor3f( 0, 0, 1 ); // blue
+glVertex2f( 0, 0.5 );
+glEnd();
+</pre>
+
+<p>Note that you do <b>not</b> have to explicitly set a color for each vertex, as was done here.
+If you want a shape that is all one color, you just have to set the current color
+once, before drawing the shape (or just after the call to <i>glBegin</i>().)</p>
+
+<hr class="break">
+    
+<p>It would be possible to clear the drawing area to a background color by drawing a
+colored rectangle, but OpenGL has a potentially more efficient way to do it.  The
+function</p>
+
+<pre>glClearColor(r,g,b,a);
+</pre>
+
+<p class="np">sets up the color to be used for clearing.
+The parameters are floating point values in the range 0 to&nbsp;1, and there are no variants of
+this function.  The default clear color is black, with 0 for all the color components.
+To fill the drawing area with the clear color, call</p>
+
+<pre>glClear( GL_COLOR_BUFFER_BIT );
+</pre>
+
+<p class="np">The parameter is a constant integer that says that it is the drawing
+area that is being cleared.  The correct term for what I have been calling the drawing
+area is the <span class="newword">color buffer</span>, where buffer is a general term
+referring to a region in memory.  OpenGL uses several buffers in addition to the
+color buffer.  We will encounter the "depth buffer" very soon.  It is possible to use
+<i>glClear</i>() to clear several buffers at the same time by combining the
+constants that represent them with a logical OR operation.  For example,</p>
+
+<pre>glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+</pre>
+
+<p class="np">We will generally use <i>glClear</i>() in this form.</p>
+
+
+</div>
+
+
+<div class="subsection">
+<h3>The Hidden Surface Problem and the Depth Test</h3>
+<p>An obvious point about viewing in 3D is that one object can be behind
+another object.  When this happens, the back object is hidden from the viewer
+by the front object.  When we create an image of a 3D world, we have to
+make sure that objects that are supposed to be hidden behind other objects
+are in fact not visible in the image.  This is the <span class="newword">hidden
+surface problem</span>.</p>
+
+<p>The solution might seem simple enough:  Just draw the objects in order from
+back to front.  If one object is behind another, the back object will be covered
+up later when the front object is drawn.  This is called the
+<span class="newword">painter's algorithm</span>.  It's essentially what you
+are used to doing in 2D.  Unfortunately, it's not so easy to implement.
+First of all, you can have objects that intersect, so that part of each
+object is hidden by the other.  Whatever order you draw the objects in,
+there will be some points where the wrong object is visible. To fix this, you would have to cut
+the objects into pieces, along the intersection, and treat the pieces as
+as separate objects.  In fact, there can be problems even if there
+are no intersecting objects:  It's possible to have three non-intersecting
+objects where the first object hides part of the second, the second hides
+part of the first, and the third hides part of the first. The painter's
+algorithm will fail no matter which order you draw the three objects.
+The solution again is to cut the objects into pieces, but now it's not
+so obvious where to cut. Consider the famous
+example of the Borromean rings (public domain image from
+<a href="http://commons.wikimedia.org/wiki/File:Borromean_Rings_Illusion.png">wikimedia</a>):
+
+<p align="center"><img src="images/06/Borromean_Rings.png" width="242" height="240" border=1></p>
+
+<p class="np">Even though these problems can be solved, there is another issue.
+The correct drawing order can change when the point of view is changed or when a geometric
+transformation is applied, which means that the correct drawing order has to be
+recomputed every time that happens.  In an animation, that would mean for every
+frame.</p>
+
+<p>So, OpenGL does not use the painter's algorithm.  Instead, it uses a technique
+called the <span class="newword">depth test</span>.  The depth test solves the
+hidden surface problem no matter what order the objects are drawn in, so you can
+draw them in any order you want!   The depth test requires that an extra number
+be stored for each pixel in the image.  This extra memory makes up the
+<span class="newword">depth buffer</span> that I mentioned earlier.
+During the drawing process, the depth buffer is used to keep track of what is currently
+visible at each pixel.  When a second object is drawn at that pixel, the
+information in the depth buffer can be used to decide whether the new object
+is in front of or behind the object that is currently visible there.  If the
+new object is in front, then the color of the pixel is changed to show the
+new object, and the depth buffer is also updated.  If the new object is
+behind the current object, then the data for the new object is discarded and
+the color and depth buffers are left unchanged.</p>
+
+<p>By default, the depth test is <b>not</b> turned on, which can lead to very
+bad results when drawing in 3D.  You can enable the depth test by calling</p>
+
+<pre>glEnable( GL_DEPTH_TEST );
+</pre>
+
+<p class="np">It can be turned off by calling <tt>glDisable(GL_DEPTH_TEST)</tt>.
+(There are many OpenGL settings that are turned on and off using
+<i>glEnable/glDisable</i>.)</p>
+
+<p>You don't necessarily need to know any more about how the depth test actually
+works,  but here are some details:  For each pixel, the depth buffer stores a
+representation of the distance from the user of the point that is currently
+visible at that pixel.  This value is essentially the <i>z</i>-coordinate
+of the point, after transformations have been applied.  (In fact, the
+depth buffer is often called the <span class="newword">z-buffer</span>.)
+The possible <i>z</i>-coordinates are scaled to the range 0 to&nbsp;1.
+The value 1 in the depth buffer represents the background, which is
+behind any object that can be drawn.  When you clear the depth buffer,
+it is filled with a 1 at each pixel. 
+In OpenGL, the range of <i>z</i>-coordinates can be shown must be limited;
+the use of the depth buffer is the reason for this limitation.
+</p>
+
+<p>The depth buffer algorithm can give some strange results when two objects
+lie at exactly the same distance from the user.  Logically, it's not even
+clear which object should be visible, but the real problem with the depth
+test is that it might show one object at some points and the second object
+at some other points.  This is possible because numerical calculations are
+not perfectly accurate.  Here an actual example:</p>
+
+<p align="center"><img src="images/06/depthTestError.png" width="507" height="228"></p>
+
+<p class="np">In the two pictures shown here, a gray square was drawn, followed
+by a white square, followed by a black square.  The squares all lie in the same
+plane.  A very small rotation was applied, to make the computer do some calculations.
+The picture on the right was drawn with the depth test disabled.  On the left,
+the depth test was enabled, and you can see the strange result.</p>
+
+<p>By the way, the discussion here assumes that there are no transparent
+objects.  Unfortunately, the depth test does not handle transparency correctly.</p>
+
+</div>
+
+
+
+
+<div class="subsection">
+<h3>Geometric Transformations in 3D</h3>
+
+<p>We've seen that geometric transformations are an important part of 2D computer
+graphics.  In three dimensions, they become even more essential.
+The three basic types of transformation&mdash;scaling, rotation, and
+translation&mdash;extend to three dimensions with just a few changes.  Translation
+is easiest.  In 2D, a translation adds some number onto each coordinate.  The
+same is true in 3D; we just need three numbers, to specify the amour of motion
+in the direction of each of the coordinate axes.  A translation by (<i>tx,ty,tz</i>)
+transforms the point (<i>x,y,z</i>) to (<i class="nb">x+tx, y+ty, z+tz</i>).</p>
+
+<p>Similarly, a 3D scaling transformation requires three scale factors, one
+to specify the amount of scaling in each of the coordinate directions.
+A scaling by (<i>sx,sy,sz</i>) transforms the point (<i>x,y,z</i>) to
+(<i class="nb">x*sx, y*sy, z*sz</i>).</p>
+
+<p>Rotation is harder.  First, you need to understand a little more about
+three-dimensional coordinate systems.  The standard OpenGL
+coordinate system is a <span class="newword">right-handed coordinate system</span>.
+The term comes from the fact that if you curl the fingers of your right hand in the direction from
+the positive <i>x</i>-axis to the positive <i>y</i>-axis, and extend your thumb out
+from your fist, then your thumb will point in the direction of the positive
+<i>z</i>-axis.  If you do this for the <i>x</i> and <i>y</i>-axes in on the
+screen in OpenGL's standard orientation, then your thumb will point towards your face.
+There are also left-handed coordinate systems, where curling the
+fingers of your <b>left</b> hand from the positive <i>x</i>-axis to the positive
+<i>y</i>-axis will point your left thumb in the direction of the positive <i>z</i>-axis.
+Note that the left/right handed distinction is not a property of the world, just
+of the way that one chooses to lay out coordinates on the world.  You can transform
+a right-handed system to a left-handed system with the right kind of geometric transformation.
+For example, scaling by (1,1,&minus;1) would do so.  That transformation represents
+a reflection through the <i>xy</i>-plane, and it reverses the orientation of the
+<i>z</i>-axis.  We'll see in a minute how the left-handed/right-handed distinction
+applies to rotations.</p>
+
+<p>In 2D, rotation is rotation about a point, which we usually
+select to be the origin.  In 3D, rotation is rotation about a line, which is called
+the <span class="newword">axis of rotation.</span>  Think of the Earth rotating
+about its axis.  The axis of rotation stays fixed, and points that are not on the
+axis move in circles about the axis.  Any line can be an axis of rotation, but
+we generally use an axis that passes through the origin.  The most
+common rotations are rotation about the <i>x</i>-axis, rotation about the <i>y</i>-axis,
+and rotation about the <i>z</i>-axis, but it's convenient to be able to use any line
+through the origin as the axis.  There is an easy way to specify the line: Just specify one other
+point that is on the line, in addition to the origin.   That's how things are
+done in OpenGL:  An axis of rotation is specified by three numbers,
+(<i>dx,dy,dz</i>), which are not all zero.  The axis is the line
+through (0,0,0) and (<i>dx,dy,dz</i>).  To specify a rotation transformation in 3D,
+you have to specify an axis and the angle of rotation about that axis.</p>
+
+<p>We still have to account for the difference between positive and negative
+angles.  We can't just say clockwise or counterclockwise.  If you look down on
+the rotating Earth from above the North pole, you see a clockwise rotation; if you
+look down on it from about the South pole, you see a counterclockwise rotation.
+So, the difference between the two is not well-defined.  To define the
+direction of rotation in 3D, we use the <span class="newword">right-hand rule</span>:
+Point the extended thumb of your right hand in the direction from (0,0,0) to
+(<i>dx,dy,dz</i>), where (<i>dx,dy,dz</i>) is the point that specifies the axis of
+rotation.  Then the direction of rotation for positive angles is given by the
+direction in which your fingers curl.  However, I need to emphasize that the right-hand
+rule only works if you are using a right-handed coordinate system.  If you have
+switched to a left-handed coordinate system, then you need to use a
+left-hand rule to determine the direction of rotation for positive angles.
+</p>
+
+<hr class="break">
+    
+<p>The functions for doing geometric transformations in OpenGL are
+<i>glScalef</i>(), <i>glRotatef</i>(), and <i>glTranslatef</i>().  The "f" indicates
+that the parameters are of type float.  There are also versions ending in "d" to
+indicate parameters of type double.  As you would expect, 3D scaling and translation
+require three parameters.  Rotation requires four parameters: The first is the
+angle of rotation measured in degrees (not radians), and the other three parameters
+specify the axis of rotation.  In the command <i>glRotatef</i>(<i>angle,dx,dy,dz</i>),
+the rotation axis is the line through the points (0,0,0) and (<i>dx,dy,dz</i>).
+At least one of <i>dx</i>, <i>dy</i>, and <i>dz</i> should be non-zero.  Here are a
+few examples:</p>
+
+<pre>glScalef(2,2,2);        // Uniform scaling by a factor of 2.
+
+glScalef(0.5,1,1);      // Shrink by half in the x-direction only.
+
+glScalef(0,0,-1);       // Reflect through the xy-plane.
+
+glTranslatef(1,0,0);    // Move 1 unit in the positive x-direction.
+
+glTranslatef(3,5,-7.5); // Move (x,y,z) to (x+3, y+5, z-7.5)
+
+glRotatef(90,1,0,0);    // Rotate 90 degrees about the x-axis.
+                        // Moves the +y axis onto the +z axis
+                        //    and the +z axis onto the -y axis.
+                        
+glRotatef(-90,-1,0,0);  // Has exactly the same effect as the previous rotation.
+
+glRotatef(90,0,1,0);    // Rotate 90 degrees about the y-axis.
+                        // Moves the +z axis onto the +x axis
+                        //    and the +x axis onto the -z axis.
+                        
+glRotatef(90,0,0,1);    // Rotate 90 degrees about the z-axis.
+                        // Moves the +x axis onto the +y axis
+                        //    and the +y axis onto the -x axis.
+                        
+glRotatef(30,1.5,2,-3); // Rotate 30 degrees about the line through
+                        //    the points (0,0,0) and (1.5,2,-3).
+</pre>
+
+<p>The function <i>glLoadIdentity</i>() can be called to discard any transformations
+that have been applied.  It takes no parameters.  The <span class="newword">identity transformation</span>
+is one that has no effect; that is, it leaves every point fixed.  Calling
+<i>glLoadIdentity</i>() gives you a known starting point for setting up transformations.</p>
+
+<p>You already know that when doing hierarchical modeling, you need to be able to save
+the current transformation and restore it later.  And you know that one way to do that
+is with a matrix stack.  OpenGL has direct support for matrix stacks.  Calling
+<i>glPushMatrix</i>() saves a copy of the current transformation on the matrix stack.
+Calling <i>glPopMatrix</i>() restores a transformation that was saved by <i>glPushMatrix</i>() 
+by removing the top transformation from the stack and installing
+it as the current transformation.</p>
+
+<hr class="break">
+    
+<p>As a simple example, we will draw a 1-by-1-by-1 cube centered at the origin, where
+each face of the cube is a different color.  For convenience, we use a short function
+to draw a square in a specified color.  The square is drawn with its center
+at the point (0,0,0.5), so that it is in position to be the front face of the
+cube.</p>
+
+<pre>
+void square(float r, float g, float b) {
+    glColor3f(r,g,b);         // The color for the square.
+    glTranslatef(0,0,0.5);    // Move square 0.5 units forward.
+    glBegin(GL_TRIANGLE_FAN);
+    glVertex2f(-0.5,-0.5);    // Draw the square (before the
+    glVertex2f(0.5,-0.5);     //   the translation is applied)
+    glVertex2f(0.5,0.5);      //   on the xy-plane, with its
+    glVertex2f(-0.5,0.5);     //   at (0,0,0).
+    glEnd();
+}
+</pre>
+
+<p class="np">Given this function, we can draw the cube as follows.
+In this code, the cube is rotated so that several faces are visible; without the
+rotation, only the front face would be visible.  The <i>square</i>()
+function can be used to draw the front face directly, but the call
+to that function is still surrounded by <i>glPushMatrix/glPopMatrix</i>
+to prevent the translation inside the function from affecting the
+rest of the drawing.  We can get the other faces of the cube by
+rotating the square from its original position to make it coincide
+with one of the other faces of the cube.  For example, we get the
+back face of the cube by rotating 180 degrees about the <i>y</i>-axis,
+and the top face by rotating &minus;90 degrees about the <i>x</i>-axis.
+Each face uses <i>glPushMatrix/glPopMatrix</i> to make sure that the
+transformations that are applied to the face affect <i>only</i>
+that face.</p>
+
+<pre>
+glLoadIdentity();     // start with no transformation 
+
+glRotatef(15,0,1,0);  // rotate the cube 15 degrees about y-axis
+glRotatef(15,1,0,0);  // rotate the cube 15 degrees about x-axis
+
+// Now, draw the six faces of the cube by drawing its six faces.
+
+glPushMatrix();
+square(1,0,0);        // front face is red
+glPopMatrix();
+
+glPushMatrix();
+glRotatef(180,0,1,0); // rotate square to back face
+square(0,1,1);        // back face is cyan
+glPopMatrix();
+
+glPushMatrix();
+glRotatef(-90,0,1,0); // rotate square to left face
+square(0,1,0);        // left face is green
+glPopMatrix();
+
+glPushMatrix();
+glRotatef(90,0,1,0); // rotate square to right face
+square(1,0,1);       // right face is magenta
+glPopMatrix();
+
+glPushMatrix();
+glRotatef(-90,1,0,0); // rotate square to top face
+square(0,0,1);        // top face is blue
+glPopMatrix();
+
+glPushMatrix();
+glRotatef(90,1,0,0); // rotate square to bottom face
+square(1,1,0);        // bottom face is yellow
+glPopMatrix();
+</pre>
+
+<p class="np">Here's an image that was produced from this code:</p>
+
+<p align="center"><img src="images/06/simple-cube.png" width="250" height="216"></p>
+
+</div>
+
+
+<div class="subsection">
+<h3>Introduction to the Projection Transformation</h3>
+
+<p>The coordinate transformations that I have been discussing here operate on 3D space.
+They make up what is called the <span class="newword">modelview</span> transformation,
+since it is used for geometric modeling and for selecting the point of view.
+But we also need another type of transformation: the <span class="newword">projection</span>
+transformation that maps the 3D world onto a 2D viewing surface.  I will come back to the
+whole topic of transforms later, but for now, there are a few things you need to know.</p>
+
+<p>The first point is that OpenGL keeps the projection transformation separate from the
+modelview transformation.  The projection transformation is always applied last, no matter when
+you specify it.  Unfortunately, the same set of functions can be used to manipulate both
+kinds of transform, so you have to tell OpenGL which transformation you want to work on.
+This is done with the <i>glMatrixMode</i>() function.  To start working on the
+projection transformation, call</p>
+
+<pre>glMatrixMode( GL_PROJECTION );
+</pre>
+
+<p class="np">To go back to working on the modelview transformation, call</p>
+
+<pre>glMatrixMode( GL_MODELVIEW );
+</pre>
+
+<p class="np">It's common to leave the matrix mode set to <i>GL_MODELVIEW</i>, except
+when you are actually working in another mode.  Here is the code that might be used
+to set up the projection:</p>
+
+<pre>
+glMatrixMode(GL_PROJECTION);
+glLoadIdentity();
+glOrtho( xmin, xmax, ymin, ymax, zmin, zmax );
+glMatrixMode(GL_MODELVIEW);
+</pre>
+
+<p class="np">The <i>glOrtho</i> command does the work.  The parameters specify the ranges
+of <i>x</i>, <i>y</i>, and <i>z</i> that will be visible in the drawing area, and the
+projection is done by discarding the <i>z</i>-coordinate.  This type of projection is
+not very realistic, and we will look at alternatives later.</p>
+
+
+</div>
+
+
+<div class="subsection">
+<h3>Introduction to Lighting, Materials, and Normal Vectors</h3>
+
+<p>Another aspect of 3D graphics that I will mostly defer for now is the effect of
+lighting on a scene.  To get a realistic scene, you have to simulate light sources
+and the interaction of light with objects in the scene.  OpenGL uses a very simplified
+lighting model, but it can still add significantly to the realism of an image.
+However, by default, lighting calculations are disabled.  To enable them, you
+have to call
+</p>
+
+<pre>
+glEnable( GL_LIGHTING );  // enable lighting calculations
+glEnable( GL_LIGHT0 );    // turn on light source number 0
+</pre>
+
+<p class="np">This turns on very basic lighting, with a single light source of white
+light that shines from the direction of the viewer onto the scene. However, when you
+do this, everything in the scene will be a dull gray color.  The problem is that
+the lighting calculation uses something called <span class="newword">material</span>
+instead of simple color.  A surface's material properties determine how it interacts
+with light.  In addition to simple color, it can include properties such as texture
+and reflectivity.  Fortunately, it's possible to tell OpenGL to treat the color
+as specified  by <i>glColor*</i> as the basic material color.  You can do this
+by calling</p>
+
+<pre>glEnable( GL_COLOR_MATERIAL );  // use glColor* values as material color
+</pre>
+
+<p>Another factor that enters into the lighting calculation is the angle at
+which light hits a surface.  Light that shines directly on a surface illuminates
+it more brightly than light that hits the surface at a glancing angle.  However,
+to determine this angle, OpenGL needs to know what direction the surface is
+facing.  This direction is determined by the <span class="newword">normal vector</span>
+to the surface.  A normal vector indicates the direction that is perpendicular
+to the surface.</p>
+
+<p>We will return to the topic of lighting, material, and normal vectors in much more
+detail in a later section.</p>
+
+</div>
+
+
+
+
+<p class="nav">[
+<a href="05_Canvas_2D.html">Previous Section</a> |
+<a href="07_GLUT_and_JOGL.html">Next Section</a> |
+<a href="index.html">Index</a>
+]</p>
+
+</div>
+
+</body>
+</html>

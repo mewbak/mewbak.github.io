@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<head>
+<meta charset="UTF-8">
+<title>Three.js Example</title>
+<script type="text/javascript" src="three.min.js"></script>
+<script type="text/javascript">
+
+/*  Show a pyramid with an optional "brick" texture using Three.js.
+ *  The pyramid geometry is constructed directly from scratch, including
+ *  texture coordinates.
+ *
+ *  The cube can be rotated using the arrow keys.  The home key
+ *  or the return key will reset the rotation to zero.  WebGL
+ *  will be used if available. 
+ */
+ 
+ "use strict";
+
+var renderer;  // A three.js WebGL or Canvas renderer.
+var scene;     // The 3D scene that will be rendered, containing the cube.
+var camera;    // The camera that takes the picture of the scene.
+
+var pyramid; // The three.js object that represents the pyramid.
+
+var rotateX = 0.4;   // rotation of cube about the x-axis
+var rotateY = -.1;  // rotation of cube about the y-axis
+
+
+/*  This function is called by the init() method.  Its purpose is
+ *  to add objects to the scene.  The scene, camera, and renderer
+ *  objects have already been created.
+ */
+function createWorld() {
+
+    /* Create a pyramid geometry from scratch */
+    
+    var pyramidGeom = new THREE.Geometry();
+    pyramidGeom.vertices = [  // array of Vector3 giving vertex coordinates
+            new THREE.Vector3( 1, 0, 1 ),    // vertex number 0
+            new THREE.Vector3( 1, 0, -1 ),   // vertex number 1
+            new THREE.Vector3( -1, 0, -1 ),  // vertex number 2
+            new THREE.Vector3( -1, 0, 1 ),   // vertex number 3
+            new THREE.Vector3( 0, 1, 0 )     // vertex number 4
+        ];
+        
+    pyramidGeom.faces = [
+            new THREE.Face4( 3, 2, 1, 0),  // bottom face is a quad
+            new THREE.Face3( 3, 0, 4),     // remaining faces are triangles
+            new THREE.Face3( 0, 1, 4),
+            new THREE.Face3( 1, 2, 4),
+            new THREE.Face3( 2, 3, 4)
+        ];
+        
+    pyramidGeom.computeFaceNormals();    // Compute normals for correct lighting.
+    pyramidGeom.computeVertexNormals();  // Not needed in this example, since it uses FlatShading.
+    pyramidGeom.computeCentroids();  // The example works without this, and I'm not sure what it does exactly,
+                                     // but on-line examples seem to use it in general.  Something about sorting...
+
+    /* Add the UV Texture Coordinates for each face.  They must be stored in pyramidGeom.faceVertexUvs[0].*/
+    
+    var bottomUV = [
+        new THREE.Vector2(0,0), new THREE.Vector2(0,1), new THREE.Vector2(1,1), new THREE.Vector2(1,0)
+    ];
+    var sideUV = [
+        new THREE.Vector2(0,0), new THREE.Vector2(1,0), new THREE.Vector2(0.5,1)
+    ];
+    pyramidGeom.faceVertexUvs = [[ bottomUV, sideUV, sideUV, sideUV, sideUV ]];
+ 
+    /* The pyramid has a basic white Phong material before texturing */
+    
+    pyramid = new THREE.Mesh( pyramidGeom, 
+                     new THREE.MeshPhongMaterial({ color: "white", shading: THREE.FlatShading}) );
+    
+    pyramid.rotation.set(rotateX,rotateY,0);  // set initial rotation
+    scene.add(pyramid);
+    var light;  // A light shining from the direction of the camera.
+    light = new THREE.DirectionalLight();
+    light.position.set(0,0,1);
+    scene.add(light);
+}
+
+/**
+ *  Apply the texture from a given URL to a given material, and calls render()
+ *  once the tecture image has loaded.
+ */
+function applyTexture(textureURL, material) { console.log("apply " + textureURL);
+   var callback = function() {
+         // to be called after the texture is loaded, to show the new texture
+       material.needsUpdate = true;
+       render();
+   };
+   var texture = THREE.ImageUtils.loadTexture(textureURL, undefined, callback);
+         // (the "undefined" here will use the default value for the 2nd parameter)
+   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;  // (Not actualled used in this example.)
+   material.map = texture; // Applies this texture to the material and hence to the object.
+   material.needsUpdate = true;  // Essential to tell three.js that material properties have changed!!
+}
+
+
+var firstTime = true;  // Is this the first time texture is applied?
+
+/**
+ *   Called when the user changes the setting of the "Apply Texture" checkbox.
+ *   Turns texturing of the pyramid on or off.
+ */
+function doTextureCheckbox() {
+   if (document.getElementById("textureCB").checked) {
+        applyTexture("textures/brick001.jpg", pyramid.material);
+   }
+   else
+        pyramid.material.map = null;
+   pyramid.material.needsUpdate = true; // required to get texture to show up / disappear.
+   if (firstTime) {
+          // I have found that both of the following are necessary if
+          // a texture is applied to an object after the object has
+          // already been rendered.  If either is removed, a WebGL
+          // error occurs during rendering -- apparently because texture
+          // coordinates are not in the buffer.
+       pyramid.geometry.uvsNeedUpdate = true;
+       pyramid.geometry.buffersNeedUpdate = true;
+       firstTime = false;
+   }
+   render();
+}
+
+
+/**
+ *  The render fucntion creates an image of the scene from the point of view
+ *  of the camera and displays it in the canvas.  This is called at the end of
+ *  init() to produce the initial view of the cube, and it is called each time
+ *  the user presses an arrow key, return, or home.
+ */
+function render() {
+    renderer.render(scene, camera);
+}
+
+/**
+ *  An event listener for the keydown event.  It is installed by the init() function.
+ */
+function doKey(evt) {
+    var rotationChanged = true;
+	switch (evt.keyCode) {
+	    case 37: rotateY -= 0.05; break;        // left arrow
+	    case 39: rotateY +=  0.05; break;       // right arrow
+	    case 38: rotateX -= 0.05; break;        // up arrow
+	    case 40: rotateX += 0.05; break;        // down arrow
+	    case 13: rotateX = rotateY = 0; break;  // return
+	    case 36: rotateX = rotateY = 0; break;  // home
+	    default: rotationChanged = false;
+	}
+	if (rotationChanged) {
+       pyramid.rotation.set(rotateX,rotateY,0);	
+       render();
+	   evt.preventDefault();
+	}
+}
+
+/**
+ *  This function is called by the onload event so it will run after the
+ *  page has loaded.  It creates the renderer, canvas, and scene objects,
+ *  calls createWorld() to add objects to the scene, and renders the
+ *  initial view of the scene.  If an error occurs, it is reported.
+ */
+function init() {
+    try {
+        var theCanvas = document.getElementById("cnvs");
+        if (!theCanvas || !theCanvas.getContext) {
+            document.getElementById("message").innerHTML = 
+                             "Sorry, your browser doesn't support canvas graphics.";
+            return;
+        }
+        try {  // try to create a WebGLRenderer
+            if (window.WebGLRenderingContext) {
+                renderer = new THREE.WebGLRenderer( { 
+                   canvas: theCanvas, 
+                   antialias: true
+                } );
+            } 
+        }
+        catch (e) {
+            console.log("window.WebGLRenderingContex exists but WebGL context creation failed: " + e);
+        }
+        if (!renderer) { 
+            document.getElementById("message").innerHTML =
+                          "Sorry, WebGL is required but not available.";
+            return;
+        }
+        renderer.setClearColor(0x220033);  // dark violet background
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(45, theCanvas.width/theCanvas.height, 0.1, 100);
+        camera.position.z = 4;
+        createWorld();
+        //applyTexture("textures/brick001.jpg", pyramid.material);
+        render();
+        document.addEventListener("keydown", doKey, false);
+        document.getElementById("textureCB").checked = false;
+     }
+     catch (e) {
+        document.getElementById("message").innerHTML = "Sorry, an error occurred: " + e;
+     }
+}
+
+</script>
+</head>
+<body onload="init()">
+
+<h2>Three.js Example</h2>
+
+<noscript>
+<p style="color: #A00; font-weight: bold">Sorry, but this page requires JavaScript!</p>
+</noscript>
+
+<p style="color:#A00; font-weight: bold" id="message"></p>
+
+<p><b>Arrow keys rotate the cube about its x- and y-axes.<br>
+Return key or HOME key sets both rotations to zero.</b></p>
+
+<p><input type="checkbox" id="textureCB" onchange="doTextureCheckbox()">
+     <label for="textureCB">Apply Texture to Pyramid</label></p>
+
+<div>
+<canvas width=640 height=480 id="cnvs" style="background-color:black"></canvas>    
+</div>
+
+</body>
+</html>

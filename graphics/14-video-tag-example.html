@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GraphicsNotes 2013 -- Example for Section 14</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body>
+
+<div class="section">
+    
+<h2>An Example for Section 14: Using the &lt;video&gt; Tag</h2>
+
+<p>This page contains an example of using the HTML5 &lt;video&gt;
+tag to show an animation produced with Blender.  It is a
+supplement to <a href="14_Blender_Animation.html">Section&nbsp;14</a>
+of this set of notes.</p>
+
+<p>The animation shows hierarchical rotational motion implemented
+in Blender.  Two cubes spin at different speeds about their <i>y</i>-axis.
+The cubes are at the ends of a long bar that spins about its <i>z</i>-axis.
+The cubes are parented to the bar, so that they are carried along by its
+rotation.  In order to get the continuous spinning at a constant speed,
+I used the techniques for rotational motion described in Section&nbsp;14,
+in the subsection on "Animation and F-Curves".  Here is the animation:</p>
+
+<p align=center>
+    <video width="320" height="240" controls>
+        <source src="images/14/cube-spin.mp4" type="video/mp4">
+        <source src="images/14/cube-spin.ogg" type="video/ogg">
+      <b style="color:red">Sorry, but your browser does not support the video tag.</b>
+</video> 
+</p>
+
+<p class="np">And here is the HTML tag that was used to embed the animation on the web page:</p>
+
+<pre>
+&lt;video width="320" height="240" controls&gt;
+    &lt;source src="images/14/cube-spin.ogg" type="video/ogg"&gt;
+    &lt;source src="images/14/cube-spin.mp4" type="video/mp4"&gt;
+  &lt;b style="color:red"&gt;Sorry, but your browser does not support the video tag.&lt;/b&gt;
+&lt;/video> 
+</pre>
+
+<p class="np">Two &lt;source&gt; tags are required since there is no single
+format that will work on all major browsers.  The first version, <i class="nb">cube-spin.ogg</i>,
+was created in Blender using the "Ogg&nbsp;Theora" format, a patent-free and open video
+format.  It should work on Chrome, Firefox, and Opera.  The second version, <i class="nb">cube-spin.mp3</i>,
+was saved in H.264 format, with MPEG-4 encoding.  I should work on Internet Explorer and Safari, and
+it would also be accepted by Chrome.  (This information comes from
+<a href="http://www.w3schools.com/html/html5_video.asp">w3schools.com</a>.)</p>
+
+<p>The two animation files were each about one-half of a megabyte in size, for a 240-frame animation
+at 320-by-240 pixels.</p>
+
+
+<p class="nav">[
+<a href="14_Blender_Animation.html">Back to Section 14</a> |
+<a href="index.html">Index</a>
+]</p>
+
+</div>
+
+</body>
+</html>

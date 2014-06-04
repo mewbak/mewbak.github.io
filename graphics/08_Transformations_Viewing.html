@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GraphicsNotes 2013 -- Section 8: Linear Algebra, Transformations, and Viewing</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body>
+
+<div class="section">
+    
+<h2>Section 8:&nbsp;&nbsp; Linear Algebra, Transformations, and Viewing</h2>
+
+<p>Computer graphics is a very mathematical subject.  Most of the mathematics is
+hidden in the implementation, but if you want to really understand what is going on,
+you need to know some of the math.  In this section, we look at
+the mathematical background without going too deeply into it.  Then, we return
+the the topic of transformations  to consider them in more deatil</p>
+
+<div class="subsection">
+<h3>Some Linear Algebra Background</h3>
+
+<p>The mathematics of
+computer graphics is primarily <span class="newword">linear algebra</span>, which is the
+study of vectors and matrices, where the matrices are important because they represent  
+transformations.  A <span class="newword">vector</span>
+is a quantity that has a length and a direction.  A vector can be visualized
+as an arrow, as long as you remember that it is the length and direction of the
+arrow that are relevant, and that its specific location is irrelevant.
+We have already briefly encountered normal vectors, which are used to specify
+the direction in which a surface is facing.
+</p>
+
+<p>If we visualize a vector <i>V</i> as starting at the origin and ending
+at a point <i>P</i>, then we can to a certain extent identify <i>V</i>
+with <i>P</i>&mdash;at least to the extent that both <i>V</i> and
+<i>P</i> have coordinates, and their coordinates are the same.  For
+example, the 3D point (<i>x,y,z</i>) = (3,4,5) has the
+same coordinates as the vector (<i>dx,dy,dz</i>) = (3,4,5).
+For the point, the coordinates (3,4,5) specify a position in space
+in the <i>xyz</i> coordinate system.  For the vector, the coordinates (3,4,5)
+specify the change in the <i>x</i>, <i>y</i>, and <i>z</i> coordinates along
+the vector.  If we represent the vector with an arrow that starts
+at the origin (0,0,0), then the head of the arrow will be at (3,4,5).
+But we could just as well visualize the vector as an arrow that starts at
+the point (1,1,1), and in that case the head of the arrow would be at
+the point (4,5,6).</p>
+
+<p>The distinction between a point and a vector is subtle.  For some
+purposes, the distinction can be ignored; for other purposes, it is important.
+Often, all that we have is a sequence of numbers, which we can treat 
+as the coordinates of either a vector or a point at will.
+</p>
+
+<p><span class="newword">Matrices</span> are rectangular arrays of numbers.  A matrix can be used
+to apply a transformation to a vector (or to a point).  The geometric
+transformations that are so important in computer graphics are
+represented as matrices.
+</p>
+
+<p>In this section, we will look at vectors and matrices and at some
+of the ways that they can be used.  The treatment is not very mathematical.
+The goal is to familiarize you with the properties of vectors and matrices
+that are most relevant to OpenGL.
+</p>
+
+
+<hr class="break">
+
+<p>We assume for now that we are talking about vectors in three dimensions.  
+A 3D vector can be specified by a triple of numbers, such as (0,1,0) or
+(3.7,&minus;12.88,0.02).  Most of the discussion, except for the
+"cross product," carries over easily into other dimensions.
+</p>
+
+<p>One of the basic properties of a vector is its <span class="newword">length</span>.
+In terms of its coordinates, the length of a vector (<i>x,y,z</i>)
+is given by <i>sqrt</i>(<i>x</i><sup>2</sup>+<i>y</i><sup>2</sup>+<i>z</i><sup>2</sup>).
+(This is just the Pythagorean theorem in three dimensions.)  If <i>v</i> is
+a vector, its length is denoted by&nbsp;<span class="code">|</span><i>v</i><span class="code">|</span>.
+The length of a vector is also called its <span class="newword">norm</span>.
+</p>
+
+<p>Vectors of length 1 are particularly important.  They are called
+<span class="newword">unit vectors</span>.  If <i>v</i> = (<i>x,y,z</i>)
+is any vector other than (0,0,0), then there is exactly one unit vector
+that points in the same direction as <i>v</i>.  That vector is given by
+</p>
+
+<pre>( x/length, y/length, z/length )</pre>
+
+<p class="np">where <i>length</i> is the length of <i>v</i>.  Dividing a vector by its
+length is said to <span class="newword">normalize</span> the vector: The result
+is a unit vector that points in the same direction as the original
+vector.  (There is some unfortunate terminology here: The terms "norm" and "normalize"
+have little to do with the idea of a normal vector to a surface, except that normal
+vectors are usually taken to be unit vectors.)
+</p>
+
+<p>Given two vectors <i>v1</i> = (<i>x1,y1,z1</i>) and
+<i>v2</i> = (<i>x2,y2,z2</i>), the <span class="newword">dot product</span>
+of <i>v1</i> and <i>v2</i> is denoted by <i>v1</i>&middot;<i>v2</i> and is defined
+by</p>
+
+<pre>v1&middot;v2 = x1*x2 + y1*y2 + z1*z2</pre>
+
+<p class="np">Note that the dot product is a number, not a vector.
+The dot product has several very important geometric meanings.  First of
+all, note that the length of a vector <i>v</i> is just the square root of
+<i>v</i>&middot;<i>v</i>.  Furthermore, the dot product of two non-zero
+vectors <i>v1</i> and <i>v2</i> has the property that
+</p>
+
+<pre>cos(angle) = v1&middot;v2 / (|v1|*|v2|)</pre>
+
+<p class="np">where <i>angle</i> is the measure of the angle from <i>v1</i> to <i>v2</i>.  In
+particular, in the case of two unit vectors, whose lengths are 1, <b>the dot product of
+two unit vectors is simply the cosine of the angle between them.</b>  Furthermore,
+since the cosine of a 90-degree angle is zero, two non-zero vectors are perpendicular
+if and only if their dot product is zero.  Because of these properties,
+the dot product is particularly important in lighting calculations, where the
+effect of light shining on a surface depends on the angle that the light makes 
+with the surface.
+</p>
+
+<p>The dot product is defined in any dimension.  For vectors in 3D, there is
+another type of product called the <span class="newword">cross product</span>, which also
+has an important geometric meaning. For vectors <i>v1</i> = (<i>x1,y1,z1</i>) and
+<i>v2</i> = (<i>x2,y2,z2</i>), the cross product of <i>v1</i>
+and <i>v2</i> is denoted <i>v1</i>&times;<i>v2</i> and is the vector defined by
+</p>
+
+<pre>v1&times;v2 = ( y1*z2 - z1*y2, z1*x2 - x1*z2, x1*y2 - y1*x2 )</pre>
+
+<p class="np">If <i>v1</i> and <i>v2</i> are non-zero vectors, then <i>v1</i>&times;<i>v2</i>
+is zero if and only if <i>v1</i> and <i>v2</i> point in the same direction or in
+exactly opposite directions.  Assuming <i>v1</i>&times;<i>v2</i> is non-zero, then
+it is perpendicular both to <i>v1</i> and to <i>v2</i>; furthermore, 
+the vectors <i>v1</i>, <i>v2</i>, <i>v1</i>&times;<i>v2</i> follow the
+right-hand rule; that is, if you curl the fingers of your right hand from 
+<i>v1</i> to <i>v2</i>, then your thumb points in the direction of <i>v1</i>&times;<i>v2</i>. If
+<i>v1</i> and <i>v2</i> are unit vectors, then the cross product
+<i>v1</i>&times;<i>v2</i> is also a unit vector, which is perpendicular both
+to <i>v1</i> and to <i>v2</i>.
+</p>
+
+<p>Finally, I will note that given two points <i>P1</i> = (<i>x1,y1,z1</i>) and
+<i>P2</i> = (<i>x2,y2,z2</i>), the <span class="newword">difference</span> <i>P2&minus;P1</i>
+which is defined by
+</p>
+
+<pre>P2 &minus; P1 = ( x2 &minus; x1, y2 &minus; y1, z2 &minus; z1 )</pre>
+
+<p class="np">is a vector that can be visualized as an arrow that starts at <i>P1</i>
+and ends at <i>P2</i>.  Now, suppose that <i>P1</i>, <i>P2</i>, and <i>P3</i>
+are vertices of a polygon.  Then the vectors <i>P1&minus;P2</i> and
+<i>P3&minus;P2</i> lie in the plane of the polygon, and so the cross product
+</p>
+
+<pre>(P3&minus;P2) &times; (P1&minus;P2)</pre>
+
+<p class="np"></p>is a vector that is perpendicular to the polygon.
+That is, it is a normal vector to the polygon.
+This fact allows us to use the vertices of a polygon to produce a normal
+vector to the polygon.  Once we have that, we can normalize the vector
+to produce a unit normal.  (It's possible for the cross product to be
+zero.  This will happen if <i>P1</i>, <i>P2</i>, and <i>P3</i> lie
+on a line.  In that case, another set of three vertices might work.
+Note that if all the vertices of a polygon lie on a line, then the polygon
+degenerates to a line segment and has no interior points at all.  We don't
+need normal vectors for such polygons.)
+</p>
+
+
+
+<hr class="break">
+
+<p>A <span class="newword">matrix</span> is just a two-dimensional array of numbers.  Suppose that
+a matrix <i>M</i> has <i>r</i> rows and <i>c</i> columns.  Let
+<i>v</i> be a <i>c</i>-dimensional vector, that is, a vector of
+<i>c</i> numbers.  Then it is possible to multiply <i>M</i> by
+<i>v</i> to yield another vector, which will have dimension <i>r</i>.
+For a programmer, it's probably easiest to define this type of 
+multiplication with code.  Suppose that we represent <i>M</i>
+and <i>v</i> by the Java arrays
+</p>
+
+<pre>double[][] M = new double[r][c];
+double[] v = new double[c];</pre>
+
+<p class="np">Then we can define the product <i>w</i> = <i>M</i><tt>*</tt><i>v</i> as follows:</p>
+
+<pre>double w = new double[r];
+for (int i = 0; i &lt; r; i++) {
+    w[i] = 0;
+    for (int j = 0; j &lt; c; j++) {
+       w[i] = w[i] + (M[i][j] * v[j]);
+    }
+}</pre>
+
+<p class="np">If you think of a row, <i>M</i>[<i>i</i>], of <i>M</i> as being a <i>c</i>-dimensional vector,
+then <i>w</i>[<i>i</i>] is simply the dot product <i>M</i>[<i>i</i>]&middot;<i>v</i>.
+</p>
+
+<p>Using this definition of the multiplication of a vector by a matrix, a matrix defines a
+<span class="newword">transformation</span> that can be applied to one vector to yield another vector.
+Transformations that are defined in this way are called <span class="newword">linear transformations</span>,
+and they are the main object of study in the field of mathematics known as linear algebra.
+</p>
+
+<p>Rotation, scaling, and shear are linear transformations, but translation is not.
+To include translations, we have to widen our view to expand the idea of transformation to include
+<span class="newword">affine transformations</span>.
+An affine transformation can be defined, roughly, as a linear transformation followed by a 
+translation.  For computer graphics, we are interested in affine transformations in
+three dimensions.  However&mdash;by what seems at first to be a very odd trick&mdash;we
+can narrow our view back to the linear by moving into the fourth dimension.
+</p>
+
+<p>Note first of all that an affine transformation in three dimensions transforms a vector
+(<i>x1,y1,z1</i>) into a vector (<i>x2,y2,z2</i>) given by
+formulas</p>
+
+<pre>x2 = a1*x1 + a2*y1 + a3*z1 + t1
+y2 = b1*x1 + b2*y1 + b3*z1 + t2
+z2 = c1*x1 + c2*y1 + c3*z1 + t3</pre>
+
+<p class="np">These formulas express a linear transformation given by multiplication by the 3-by-3 matrix
+</p>
+
+<pre>a1  a2  a3
+b1  b2  b3
+c1  c2  c3</pre>
+
+<p class="np">followed by translation by <i>t1</i> in the <i>x</i> direction, <i>t2</i> in the <i>y</i>
+direction and <i>t3</i> in the <i>z</i> direction.  The trick is to replace each three-dimensional
+vector (<i>x,y,z</i>) with the four-dimensional vector
+(<i>x,y,z,</i>1), adding a "1" as the fourth coordinate.   And instead of 
+the 3-by-3 matrix, we use the 4-by-4 matrix
+</p>
+
+<pre>a1  a2  a3  t1
+b1  b2  b3  t2
+c1  c2  c3  t3
+ 0   0   0   1</pre>
+
+<p class="np">If the vector (<i>x1,y1,z1</i>,1) is multiplied by this 4-by-4 matrix,
+the result is  precisely the vector (<i>x2,y2,z2,</i>1).  That is,
+instead of applying an <i>affine</i> transformation to the 3D vector (<i>x1,y1,z1</i>),
+we can apply a <i>linear</i> transformation to the 4D vector (<i>x1,y1,z1</i>,1).</p>
+
+<p>This might seem pointless to you, but nevertheless, that is what OpenGL does:  It
+represents affine transformations as 4-by-4 matrices, in which the bottom row is
+(0,0,0,1), and it converts three-dimensional vectors into four dimensional vectors
+by adding a 1 as the final coordinate.  The result is that all the affine transformations
+that are so important in computer graphics can be implemented as matrix multiplication.</p>
+
+<p>One advantage of using matrices to represent transforms is that matrices can be multiplied.
+In particular, if <i>A</i> and <i>B</i> are 4-by-4 matrices, then their matrix product
+<i>A</i><tt>*</tt><i>B</i> is another 4-by-4 matrix.  Each of the matrices <i>A</i>,
+<i>B</i>, and <i>A</i><tt>*</tt><i>B</i> represents a linear transformation.  The important
+fact is that applying the single transformation <i>A</i><tt>*</tt><i>B</i> to a vector
+<i>v</i> has the same effect as first applying <i>B</i> to <i>v</i> and then applying <i>A</i>
+to the result.  Mathematically, this can be said very simply:  (<i>A</i><tt>*</tt><i>B</i>)<tt>*</tt><i>v</i>
+= <i>A</i><tt>*</tt>(<i>B</i><tt>*</tt><i>v</i>).  For computer graphics, it means that
+the operation of following one transform by another can be represented simply by multiplying their matrices.
+This allows OpenGL to keep track of a single matrix, rather than a sequence of individual
+transforms.  Transform commands such as <i>glRotatef</i> and <i>glTranslated</i> are implemented
+as matrix multiplication: The current matrix is multiplied by a matrix representing
+the transform that is being applied, yielding a matrix that represents the combined transform.
+You might compose your transform as a long sequence of rotations scalings, and translations,
+but when the transform is actually applied to a vertex, only a single matrix multiplication is
+necessary.  The matrix that is used represents the entire sequence of transforms, all multiplied
+together.  It's really a very neat system.
+</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Coordinate Systems</h3>
+
+<p>The transformations that are used in computer graphics can be thought of as
+transforming <span class="newword">coordinate systems.</span>  A coordinate system
+is a way of assigning coordinates to points.  How this is done is to some extent arbitrary,
+and transformations transform from one arbitrary assignment of coordinates to another.
+OpenGL uses a variety of coordinate systems and transformations between them.</p>
+
+<p>The coordinates that you actually use for drawing an object are called
+<span class="newword">object coordinates</span>.  The object coordinate system is chosen to be
+convenient for the object that is being drawn.   A <span class="newword">modeling transformation</span>
+can then be applied to set the size, orientation, and position of the object
+in the overall scene (or, in the case of hierarchical modeling, in the
+object coordinate system of a larger, more complex object).  The modeling transformation
+is the first that is applied to the vertices of an object. </p>
+
+<p>The coordinates in which you build the complete scene are called
+<span class="newword">world coordinates</span>.  These are the coordinates for
+the overall scene, the imaginary 3D world that you are creating.
+The modeling transformation
+maps from object coordinates to world coordinates.
+</p>
+
+<p>In the real world, what you see depends on where you are standing
+and the direction in which you are looking.  That is, you can't make a picture
+of the scene until you know the position of the "viewer" and where the
+viewer is looking&nbsp;and, if you think about it, how the viewer's head
+is tilted.  For the purposes of OpenGL, we imagine that the
+viewer is attached to their own individual coordinate system, which is known
+as <span class="newword">eye coordinates</span>.
+In this coordinate system, the viewer is at the origin, (0,0,0), looking
+in the direction of the negative z-axis, and the positive direction of
+the y-axis is pointing straight up.  This is a viewer-centric coordinate
+system, and it's important because it determines what exactly is seen
+in the image.  In other words, eye coordinates are (almost) the coordinates
+that you actually want to <b>use</b> for drawing on the screen.
+The transform from world coordinates to eye coordinates is called the 
+<span class="newword">viewing transform</span>. 
+</p>
+
+<p>If this is confusing, think of it this way: We are free to use any
+coordinate system that we want on the world.  Eye coordinates are the
+<b>natural</b> coordinate system for making a picture of the world as seen by
+a viewer.  If
+we used a different coordinate system (world coordinates) when building the world,
+then we have to transform those coordinates to eye coordinates to find
+out what the viewer actually sees.  That transformation is the viewing transform.
+</p>
+
+<p>Note, by the way, that OpenGL doesn't keep track of separate modeling
+and viewing transforms.  They are combined into a single 
+<span class="newword">modelview transform</span>.  In fact, OpenGL doesn't even use world
+coordinates internally; it goes directly from object coordinates to
+eye coordinates by applying the modelview transformation.
+</p>
+
+
+<p>We are not done.  The viewer can't see the entire 3D world,
+only the part that fits into the <span class="newword">viewport</span>, the
+rectangular region of the screen or other display device where the
+image will be drawn.  We say that the scene is
+<span class="newword">clipped</span> by the edges of the viewport.  Furthermore, in OpenGL,
+the viewer can see only a limited range of <i>z</i>-values.  Points with larger
+or smaller <i>z</i>-values are clipped away and are not rendered into the image.
+(This is not, of course, the way that viewing works in the real world, but it's
+required by the use of the depth test in OpenGL.)
+The volume of space that
+is actually rendered into the image is called the <span class="newword">view volume</span>.
+Things inside the view volume make it into the image; things that are not
+in the view volume are clipped and cannot be seen.  For purposes of drawing,
+OpenGL applies a coordinate transform that maps the view volume
+onto a <b>cube</b>.  The cube is centered at the origin and extends from &minus;1 to
+1 in the x-direction, in the y-direction, and in the z-direction.  The coordinate
+system on this cube is referred to as <span class="newword">clip coordinates.</span>
+The transformation from eye coordinates to clip coordinates is
+called the <span class="newword">projection transformation</span>.  At this point, we
+haven't <i>quite</i> projected the 3D scene onto a 2D surface, but we can now do
+so simply by discarding the z-coordinate.
+</p>
+
+<p>We <b>still</b> aren't done.  In the end, when things are actually drawn, there are
+<span class="newword">device coordinates</span>, the 2D coordinate system in which the
+actual drawing takes place on a physical display device such as the computer screen.
+Ordinarily, in  device coordinates, the pixel is the unit of measure.
+The drawing region is a rectangle of pixels.  This is the rectangle that is called
+the viewport.  The <span class="newword">viewport transformation</span>
+takes x and y from the clip coordinates and scales them to fit
+the viewport.
+</p>
+
+<p>Let's go through the sequence of transformations one more time.  Think of a primitive, such
+as a line or triangle, that is part of the world and that might appear in the image
+that we want to make of the world.  The primitive goes through the following sequence of
+operations:
+</p>
+
+<p align=center><img src="images/08/transforms.png" width="637" height="38"></p>
+
+
+
+<ol>
+
+<li>The points that define the primitive are specified in object coordinates, using methods
+such as <i>glVertex3f</i>.</li>
+
+<li>The points are first subjected to the modelview transformation, which is a combination of
+the modeling transform that places the primitive into the world and the viewing transform
+that maps the primitive into eye coordinates.</li>
+
+<li>The projection transformation is then applied to map the view volume that is visible to 
+the viewer onto the clip coordinate cube.  If the transformed primitive lies outside
+that cube, it will not be part of the image, and the processing stops.  If part of the
+primitive lies inside and part outside, the part that lies outside is clipped away and discarded, 
+and only the part that remains is processed further.</li>
+
+<li>Finally, the viewport transform is applied to produce the device coordinates that will
+actually be used to draw the primitive on the display device.  After that, it's just a matter
+of deciding how to color the individual pixels that are part of the primitive on the device.</li>
+
+</ol>
+
+
+</div>
+
+
+
+
+
+<div class="subsection">
+<h3>The Modelview Transformation</h3> 
+
+<p>"Modeling" and "viewing" might seem like very different things, conceptually, but OpenGL
+combines them into a single transformation.  This is because there is no way to distinguish
+between them in principle; the difference is purely conceptual.  That is,
+a given transformation can be considered to be either a modeling transformation or a
+viewing transformation, depending on how you think about it.</p>
+
+<p>For example, suppose that there is a model of a house at the origin, facing towards the
+direction of the positive <i>z</i>-axis.  Suppose the viewer is on the positive <i>z</i>-axis,
+looking back towards the origin.  The viewer is looking directly at the front of the
+house. Now, you might apply a modeling transformation to the house, to rotate it by
+90 degrees about the <i>y</i>-axis.  After this transformation, the house is facing in
+the positive direction of the <i>x</i>-axis, and  the viewer is looking directly
+at the <b>left</b> side of the house.  On the other hand, you might rotate the
+viewer by &minus;90 degrees about the <i>y</i>-axis.  This would put the viewer on
+the negative <i>x</i>-axis, which would give it a view of the <b>left</b> side of the house.
+The net result after either transformation is that the viewer ends up with exactly the
+same view of the house.  Either transformation can be implemented in OpenGL with the
+command
+</p>
+
+<pre>glRotatef(90,0,1,0);
+</pre>
+
+<p class="np">That is, this command represents either a modeling transformation that rotates
+an object by 90 degrees or a viewing transformation that rotates the viewer by &minus;90
+degrees.  Note that the effect on the viewer is the inverse of the effect on the object.
+Modeling and viewing transforms are always related in this way.  For example, if you
+are looking at an object, you can move yourself 5 feet to the <b>left</b> (viewing transform), or you can move
+the object 5 feet to the <b>right</b> (modeling transform).  In either case, you end up with
+the same view of the object.  Both transformations might be represented in OpenGL as something
+like</p>
+
+<pre>glTranslatef(5,0,0);
+</pre>
+
+<p class="np">This even works for scaling:  If the viewer <i>shrinks</i>, it will look to the
+viewer exactly the same as if the world is expanding, and vice-versa.</p>
+
+<hr class="break">
+    
+<p>Although modeling and viewing transformations are the same in principle, they remain
+very different conceptually, and they are typically applied at different points in the code.
+In general when drawing a scene, you will do the following:  (1)&nbsp;Load the identity matrix,
+for a well-defined starting point; (2)&nbsp;apply the viewing transformation; and (3)&nbsp;draw
+the objects in the scene, each with its own modeling transformation.  Remember that OpenGL keeps
+track of several transformations, and that this must all be done while the modelview transform
+is current; if you are not sure of that then before step (1), you should call <i>glMatrixMode</i>(<i>GL_MODELVIEW</i>).
+During step (3), you will probably use <i>glPushMatrix</i>() and <i>glPopMatrix</i>() to limit
+each modeling transform to a particular object.
+</p>
+
+<p>After loading the identity matrix, the viewer is in the default position, at the origin,
+looking down the negative <i>z</i>-axis, with the positive <i>y</i>-axis pointing upwards in the
+view.  Suppose, for example, that we would like to move the viewer from its
+default location at the origin back along the positive z-axis from the
+origin to the point (0,0,20).  This operation has exactly the same effect as moving the world,
+and the objects that it contains, 20 units in the negative direction along the z-axis&mdash;whichever
+operation is performed, the viewer ends up in exactly the same position relative to the
+objects.  Both operations are implemented by the same OpenGL
+command, <i>gl.glTranslatef</i>(0,0,-20).  For another example,
+suppose that we use two commands
+</p>
+
+<pre>gl.glRotatef(90,0,1,0);
+gl.glTranslatef(10,0,0);
+</pre>
+
+<p class="np">to establish the viewing transformation.  As a modeling transform, these commands would
+first translate an object 10 units 
+in the positive x-direction, then rotate the object 90 degrees about the y-axis.  (Remember that
+modeling transformations are applied to objects in the order opposite to their order in the code.)
+What do these commands do as a viewing transformation?  The effect on the view is the inverse
+of the effect on objects.  The inverse of "translate 90 then rotate 10" is "rotate &minus;10
+then translate &minus;90."  That is, to do the inverse, you have to undo the rotation <b>before</b>
+you undo the translation.   The effect as a viewing transformation is first to rotate the viewer
+by &minus;90 degrees about the <i>y</i>-axis, then to translate by &minus;10 along the <i>x</i>-axis.
+(You should think about the two interpretations affect the view of an object that starts out
+at the origin.)  Note that the order in which viewing transformations are applied is the
+<b>same as</b> the order in which they occur in the code.
+</p>
+
+<hr class="break">
+
+<p>It can be difficult to set up a view by combining rotations, scalings, and translations,
+so OpenGL provides an easier way to set up a typical view.
+The command is not part of OpenGL itself but is part of another standard library called
+<span class="newword">GLU</span> (not to be confused with GLUT).</p>
+
+<p>The GLU library provides the following convenient method for
+setting up a viewing transformation:</p>
+
+<pre>gluLookAt( eyeX,eyeY,eyeZ, refX,refY,refZ, upX,upY,upZ );
+</pre>
+
+<p class="np">This method places the viewer at the point (<i>eyeX</i>,<i>eyeY</i>,<i>eyeZ</i>),
+looking in the direction of the point (<i>refX</i>,<i>refY</i>,<i>refZ</i>).
+The viewer is oriented so that the vector (<i>upX</i>,<i>upY</i>,<i>upZ</i>)
+points upwards in the viewer's view.  For example, to position the viewer on the positive
+<i>x</i>-axis, 10 units from the origin, looking back at the origin, with the positive
+direction of the <i>y</i>-axis pointing up as usual, use
+</p>
+
+<pre>gluLookAt( 10,0,0,  0,0,0,  0,1,0 );</pre>
+
+<p>To use GLU in C, you should include the GLU header file in your program by adding
+the directive <tt>#include&nbsp;"gl/GLU.h"</tt> at the beginning of the program.  When
+compiling he program, you need to link to the GLU library.  For example:</p>
+
+<pre>gcc  myProgram.c  -lglut  -lGLU
+</pre>
+
+<p>To use GLU in Java with JOGL, you need an object of type <span class="classname">GLU</span>.  This
+class is in the package <i>javax.media.opengl</i>.  You need to create an object of type
+<span class="classname">GLU</span>:</p>
+
+<pre>GLU glu = new GLU();
+</pre>
+
+<p class="np">and use it to call GLU routines such as <i>gluLookAt</i>:</p>
+
+<pre>glu.gluLookAt( eyeX,eyeY,eyeZ, refX,refY,refZ, upX,upY,upZ );
+</pre>
+
+<hr class="break">
+    
+<p class="np">With all this, we can give an outline for a typical display routine.  In the C version:</p>
+
+<pre>// possibly set clear color here, if not set elsewhere
+
+glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+// possibly set up the projection here, if not done elsewhere
+
+glMatrixMode( GL_MODELVIEW );
+
+glLoadIdentity();
+
+gluLookAt( eyeX,eyeY,eyeZ, refX,refY,refZ, upX,upY,upZ );  // Viewing transform
+
+glPushMatrix();
+  .
+  .   // apply modeling transform and draw an object
+  .
+glPopMatrix();
+
+glPushMatrix();
+  .
+  .   // apply another modeling transform and draw another object
+  .
+glPopMatrix();
+
+  .
+  .
+  .
+</pre>
+
+
+</div>
+
+
+
+
+<div class="subsection">
+<h3>The Projection Transformation</h3>
+
+<p>To finish this discussion of transformation, we need to consider the
+<span class="newword">projection transformation</span>.  Recall that projection
+transforms from eye coordinates to clip coordinates by mapping the view volume
+to the 2-by-2-by-2 cube centered at the origin.  Specifying a projection is
+really just a matter of specifying the view volume.
+The viewing transform determines  where the viewer is looking,
+but it doesn't say how much of the world the viewer can see.  That's
+the point of the view volume.</p>
+
+<p>There are two general types of projection, <span class="newword">perspective projection</span>
+and <span class="newword">orthographic projection</span>.  Perspective projection gives a
+realistic view.  That is, it shows what you would see if the OpenGL display rectangle
+on your computer screen were a window into an actual 3D world (one that
+could extend in front of the screen as well as behind it).  It shows a view that
+you could get by taking a picture of a 3D world with a camera.  In a perspective
+view, the apparent size of an object depends on how far it is away from the
+viewer.  Only things that are in front of the viewer can be seen.  In fact,
+ignoring clipping in the <i>z</i>-direction for the moment,
+the part of the world that is in view is an infinite pyramid, with the
+viewer at the apex of the pyramid, and with the sides of the pyramid
+passing through the sides of the viewport rectangle.</p>
+
+
+<p>However, OpenGL can't actually show everything in this pyramid, because of
+its use of the depth buffer to solve the hidden surface problem.  Since the
+depth buffer can only store a finite range of depth values, it can't
+represent the entire range of depth values for the infinite pyramid that 
+is theoretically in view.  Only objects in a certain range of distances from 
+the viewer are shown in the image that OpenGL produces.  That range of distances 
+is specified by two values,  <span class="newword">near</span> and <span class="newword">far</span>.  
+For a perspective transformation, both of these values must be positive numbers, and <i>far</i> must be greater 
+than <i>near</i>.  Anything that is closer to the viewer than the <i>near</i> distance
+or farther away than the <i>far</i> distance is discarded and does not appear
+in the rendered image.  The volume of space that is represented in the image
+is thus a "truncated pyramid."  This pyramid is the view volume for a perspective
+projection: 
+</p>
+
+
+<p align="center"><img src="images/08/frustum.png" width="587" height="226"></p>
+
+
+<p>The view volume is bounded by six planes&mdash;the four sides plus the top and bottom of the pyramid.  These
+planes are called <span class="newword">clipping planes</span>  because anything that lies on the wrong side
+of each plane is clipped away.</p>
+
+
+<p>In OpenGL, setting up the projection transformation is equivalent to defining
+the view volume.  For a perspective transformation, you have to set up a view volume
+that is a truncated pyramid.  A rather obscure term for this shape is a <span class="newword">frustum</span>,
+and a perspective transformation can be set up with the <i>glFrustum</i> command</p>
+
+
+<pre>glFrustum(xmin,xmax,ymin,ymax,near,far)
+</pre>
+
+
+<p class="np">The last two parameters specify the <i>near</i> and <i>far</i> distances from the
+viewer, as already discussed.  The viewer is assumed to be at the origin, (0,0,0), facing
+in the direction of the negative z-axis.  (This is the eye coordinate system.)  So,
+the near clipping plane is at <i>z</i> = &minus;<i>near</i>, and the far clipping
+plane is at <i>z</i> = &minus;<i>far</i>.  The first four parameters specify the sides
+of the pyramid:  <i>xmin</i>, <i>xmax</i>, <i>ymin</i>, and <i>ymax</i> specify the
+horizontal and vertical limits of the view volume <b>at the near clipping plane</b>.
+For example, the coordinates of the upper-left corner of the small end of the
+pyramid are (<i>xmin</i>,<i>ymax</i>,&minus;<i>near</i>).  Note that although
+<i>xmin</i> is usually equal to the negative of <i>xmax</i> and <i>ymin</i> is usually
+equal to the negative of <i>ymax</i>, this is not required.  It is possible to have
+asymmetrical view volumes where the z-axis does not point directly down the center of
+the view.
+</p>
+
+
+<hr class="break">
+    
+<p>Orthographic projections are comparatively easy to understand: A 3D world is projected onto
+a 2D image by discarding the z-coordinate of the eye-coordinate system.  This type of projection
+is unrealistic in that it is not what a viewer would see.  For example, the apparent size of
+an object does not depend on its distance from the viewer.  Objects in back of the viewer
+as well as in front of the viewer are visible in the image.  In fact, it's not really clear what
+it means to say that there is a viewer  in the case of orthographic projection.
+Orthographic projections are still useful, however, especially in interactive modeling 
+programs where it is useful to see true sizes and angles, undistorted by perspective.</p>
+
+<p>Nevertheless, for orthographic projection in OpenGL, there is considered to be a viewer.
+The viewer is located at the eye-coordinate 
+origin, facing in the direction of the negative z-axis.  Theoretically, a rectangular corridor
+extending infinitely in both directions, in front of the viewer and in back, would be in view.
+However, as with perspective projection, only a finite segment of this infinite corridor can
+actually be shown in an OpenGL image.  This finite view volume is a parallelepiped&mdash;a&nbsp;rectangular
+solid&mdash;that is cut out of the infinite corridor by a <i>near</i> clipping plane and a <i>far</i>
+clipping plane.  The value of <i>far</i> must be greater than <i>near</i>, but for an orthographic
+projection, the value of <i>near</i> is allowed to be negative, putting the "near" clipping plane
+behind the viewer, as it is in this illustration: 
+</p>
+
+<p align="center"><img src="images/08/parallelepiped.png" width="591" height="212" alt=""></p>
+
+<p class="np">Note that a negative value for <i>near</i> puts the near clipping plane on the <b>positive</b>
+z-axis, which is behind the viewer.</p>
+
+<p>An orthographic projection can be set up in OpenGL using the <i>glOrtho</i> method, which is
+has the following form:
+</p>
+
+<pre>glOrtho(xmin,xmax,ymin,ymax,near,far);
+</pre>
+
+<p class="np">The first four parameters specify the <i>x</i>- and <i>y</i>-coordinates of the left, right, bottom, and
+top of the view volume.  Note that the last two parameters are <i>near</i> and <i>far</i>,
+not <i>zmin</i> and <i>zmax</i>.  In fact, the minimum z-value for the view volume is
+&minus;<i>far</i> and the maximum z-value is &minus;<i>near</i>.  However, it is often
+the case that <i>near</i> = &minus;<i>far</i>, and if that is true then the minimum and
+maximum z-values turn out to be <i>near</i> and <i>far</i> after all!</p>
+
+
+    
+<hr class="break">
+
+
+
+
+
+<p>Remember that when setting up the projection transform, the
+matrix mode must be set to <i>GL_PROJECTION</i>.  Furthermore,
+the identity matrix should be loaded before setting the projection (since
+<i>glFrustum</i> and <i>glOrtho</i> modify the existing projection matrix rather than replacing
+it, and you don't even want to try to think about what would happen if you
+combine several projection matrices into one).  So, setting the projection
+often looks like this, leaving the matrix mode set to <i>GL_MODELVIEW</i>
+at the end:</p>
+
+
+<pre>gl.glMatrixMode(GL.GL_PROJECTION);
+gl.glLoadIdentity();
+gl.glFrustum(xmin,xmax,ymin,ymax,near,far); // or glOrtho
+gl.glMatrixMode(GL.GL_MODELVIEW);</pre>
+
+
+<p>This might be used in an initialization routine, if you want to use the
+same projection for the whole program.  Another possibility is to put it
+in the reshape routine, where you can take the aspect ratio of the viewport
+into account.  Or you could do it at the start of the display routine,
+where it will be done every time the scene is redrawn.</p>
+
+<hr class="break">
+
+<p>The <i>glFrustum</i> method is not particularly easy to use.  The GLU library
+includes the method <i>gluPerspective</i> as an easier way to set up a perspective
+projection.  The command</p>
+
+<pre>gluPerspective(fieldOfViewAngle, aspect, near, far);
+</pre>
+
+<p class="np">can be used instead of <i>glFrustum</i>.  The <i>fieldOfViewAngle</i> is the vertical
+angle, measured in degrees, between the top of the view volume pyramid and the bottom.  A typical value is
+45 degrees.  The <i>aspect</i> parameter is the
+aspect ratio of the view, that is, the width of the pyramid at a given distance from
+the eye, divided by the height at the same distance.  The value of <i>aspect</i> should
+generally be set to the aspect ratio of the viewport, that is, the width of the viewport divided
+by its height.  The <i>near</i> and <i>far</i>
+parameters have the same meaning as for <i>glFrustum</i>.</p>
+
+
+</div>
+
+
+
+
+<div class="subsection">
+<h3>Camera and Trackball</h3>
+
+<p>Projection and viewing are often discussed using the analogy of a <span class="newword">camera</span>.
+A camera is used to take a picture of a 3D world.  Setting up the viewing transformation is like
+positioning and pointing the camera.  The projection transformation determines the properties
+of the camera:  What is its field of view?  (Of course, the analogy breaks in at least one respect,
+since a real camera doesn't do clipping in its <i>z</i>-direction.)</p>
+
+<p>I have written a camera utility to implement this idea.  The camera is meant to completely
+take over the job of setting the projection and view.  Instead of doing that by hand, you set
+properties of the camera.  The API is somewhat different in Java and in C.  I will discuss the
+C implementation first.</p>
+
+<p>In C, the camera is defined by a .c file, <a href="opengl-c/camera.c">camera.c</a> and
+a corresponding header file , <a href="opengl-c/camera.h">camera.h</a>.  Full documentation can
+be found in the header file.  To use the camera, you should <tt>#include&nbsp;"camera.h"</tt> at
+the start of your program, and when you compile the program, you should include <i>camera.c</i> in
+the list of files that you want to compile.  The camera depends on the GLU library and on
+C's standard math library, so you have to make sure that those libraries are available
+when it is compiled.  For example:</p>
+
+<pre>gcc  myglutprog.c  camera.c  -lGL  -lglut  -lGLU  -lm
+</pre>
+
+<p class="np">To use the camera, you have to call</p>
+
+<pre>cameraApply();</pre>
+
+<p class="np">at the beginning of the display function.  Calling this function completely replaces
+all code for setting up the projection and viewing transformations, and it leaves the
+matrix mode set to <i>GL_MODELVIEW</i>.  You can configure the camera by calling these
+functions, but remember that the settings are not used until you call <i>cameraApply</i>:</p>
+
+<pre>
+cameraLookAt( eyeX,eyeY,eyeZ, refX,refY,refZ, upX,upY,upZ );
+    // Determines the viewing transform, just like gluLookAt
+    // Default is cameraLookAt( 0,0,30, 0,0,0, 0,1,0 );
+    
+cameraSetLimits( xmin, xmax, ymin, ymax, zmin, zmax );
+    // Sets the limits on the view volume, where zmin and zmax are
+    // given with respect to the view reference point, NOT the eye,
+    // and the xy limits are measured at the distance of the
+    // view reference point, NOT the near distance.
+    // Default is cameraSetLimits( -5,5, -5,5, -10,10 );
+    
+cameraSetScale( limit );
+    // a convenience method, which is the same as calling
+    // cameraSetLimits( -limit,limit, -limit,limit, -2*limit, 2*limit );
+    
+cameraSetOrthographic( isOrtho );
+    // Switch between orthographic and perspective projection.
+    // The parameter should be 0 for perspective, 1 for
+    // orthographic.  The default is perspective.
+    
+cameraSetPreserveAspect( preserve );
+    // Determine whether the aspect ratio of the viewport should
+    // be respected.  The parameter should be 0 to ignore and
+    // 1 to respect the viewport aspect ratio.  The default
+    // is to preserve the aspect ratio.
+</pre>
+
+<p></p>
+
+
+<hr class="break">
+
+
+<p>The camera comes along with a simulated <span class="newword">trackball</span>.
+The trackball allows the user to rotate the view by clicking and dragging the mouse
+on the display.  To use it with GLUT in C, you just need to install a mouse function and
+a mouse motion functions by calling
+</p>
+
+<pre>glutMouseFunc( trackballMouseFunction );
+glutMotionFunc( trackballMotionFunction );
+</pre>
+
+<p class="np">when you want to enable the trackball.  The functions
+<i>trackballMouseFunction</i> and <i>trackballMotionFunction</i> are defined
+as part of the camera library and are declared in <i>camera.h</i>.
+The trackball works by modifying the viewing transformation associated with
+the camera, and it only works if <i>cameraApply</i>() is called at the
+beginning of the display function to set the viewing and projection
+transformations.</p>
+
+<hr class="break">
+    
+<p>A camera and trackball are also available for use with JOGL, in a
+<span class="class">Camera</span> class, defined in file
+<i><a href="opengl-jogl/Camera.java">Camera.java</a></i>.  The camera
+is meant for use with a <span class="classname">GLJPanel</span> or
+<span class="classname">GLCanvas</span>.   To use
+one, you have to create an object of type <span class="class">Camera</span>:</p>
+
+<pre>Camera camera = new Camera();
+</pre>
+
+<p class="np">and at the start of the <i>display</i>() method you must call</p>
+
+<pre>camera.apply(gl);
+</pre>
+
+<p class="np">where <i>gl</i> is the OpenGL drawing context of type <i>GL2</i>.
+(Note the presence of the parameter <i>gl</i>, which was not necessary in&nbsp;C!)
+As in the C version, this sets the viewing and projection transformations and
+should completely replace any other code that you would use for that purpose.
+The functions for configuring the camera are the same in Java as in C,
+except that they become methods in the <i>camera</i> object, and true/false
+parameters are <i>boolean</i> instead of <i>int</i>:</p>
+
+<pre>camera.lookAt( eyeX,eyeY,eyeZ, refX,refY,refZ, upX,upY,upZ );
+camera.setLimits( xmin,xmax, ymin,ymax, zmin,zmax );
+camera.setScale( limit );
+camera.setOrthographic( isOrtho );    // isOrtho is of type boolean
+camera.setPreserveAspect( preserve ); // preserve is of type boolean
+</pre>
+
+<p class="np">To install a trackball for use with the camera, call</p>
+
+<pre>camera.installTrackball(gldrawable);
+</pre>
+
+<p class="np">where <i>gldrawabel</i> is the component on which the camera
+is used, probably a <span class="classname">GLJPanel</span> or
+<span class="classname">GLCanvas</span>.</p>
+
+</div>
+
+
+
+
+
+<div class="subsection">
+<h3>Putting the Viewer into the World</h3>
+
+<p>The camera API allows you to change the position and orientation of the
+camera, but it doesn't make it possible to do so by applying transformations,
+which is the usual way of placing an object into the world.  Suppose
+that we want to think of the viewer (or eye or camera) as an object like other
+objects in the world, and we want to be able to move it around in the world
+by applying a modeling transformation, as we do for other objects.  A viewer
+that can be manipulated in this way is sometimes called an <span class="newword">avatar</span>.
+Ideally, we would like to be able to add some kind of avatar object to a scene graph,
+and then change or animate the avatar's point of view by applying modeling
+transformations to that node of the scene graph.
+</p>
+
+<p>But there are two problems with thinking of a viewer as an object.  First of all,
+the viewing transformation must be applied at the beginning, before any geometry is
+drawn.  This means that you can't simply traverse the scene graph in the usual way
+and implement the avatar at the point where it is encountered in the scene graph,
+since before you get to that node, you will have already drawn the geometry
+in other nodes that you have encountered.  The second problem is the inverse
+relation between modeling and viewing transformation:  If you want to apply
+a modeling transformation to the avatar <i>object</i>, you really need to apply
+the <i>inverse</i> of that modeling transformation as the viewing transformation.
+</p>
+
+<p>The easiest way to think about how to solve these problems is to imagine the
+scene graph as a linked data structure.  To implement the avatar, we need to
+include "parent pointers" in the data structure that point from a node to
+its parent in the scene graph.  Parent pointers allow you to move up the
+scene graph, in the direction of the root.  Then, to implement the avatar,
+start from the avatar node in the scene graph.  Call <i>glLoadIdentity</i>() to
+initialize the modelview transformation.  Then move up the scene graph, following
+parent pointers.  When you encounter a modeling transformation, apply the
+<i>inverse</i> of that transformation.  (These inverses will be applied in
+the reverse order from their order as modeling transformations.  This is the
+correct way to compute the inverse of a sequence of transforms.  Mathematically,
+(S<tt>*</tt>R)<sup>&minus;1</sup>&nbsp;=&nbsp;R<sup>&minus;1</sup><tt>*</tt>S<sup>&minus;1</sup>.)
+Stop when you get to the root of the
+scene graph.  At that point, the modelview transform contains exactly the
+viewing transformation that you want, and you are ready to traverse the
+scene graph to draw the geometry.  (In that traversal, the avatar node should
+be ignored.)</p>
+
+<p>If the scene graph is implemented procedurally rather than as a data structure,
+you have to do things differently, but the end result should be the same.  One
+possibility is to do two traversals of the scene graph, one to find and implement
+the avatar and one to draw the geometry.</p>
+
+
+</div>
+
+
+
+
+
+<div class="subsection">
+<h3>Homogeneous Coordinates</h3>
+    
+<p>We finish this section with a bit of mathematical detail about the implementation of transformations.
+There is one transformation in computer graphics that is not an affine transformation:
+In the case of a perspective projection, the projection transformation is not affine.
+In a perspective projection, an object will appear to get smaller as it moves farther away
+from the viewer, and that is a property that no affine transformation can express, since
+affine transforms preserve parallel lines and parallel lines will seem to converge in the
+distance in a perspective projection.
+</p>
+
+<p>Surprisingly, we can still represent a perspective projection as a 4-by-4 matrix, provided
+we are willing to stretch our use of coordinates even further than we have already.  We
+have already represented 3D vectors by 4D vectors in which the fourth coordinate is 1.
+We now allow the fourth coordinate to be anything at all.  When the fourth coordinate, <i>w</i>,
+is non-zero, we consider the coordinates (<i>x,y,z,w</i>) to
+represent the three-dimensional vector (<i>x/w,y/w,z/w</i>).  Note that this
+is consistent with our previous usage, since it considers (<i>x,y,z,1</i>)
+to represent (<i>x,y,z</i>), as before.   When the fourth coordinate is zero,
+there is no corresponding 3D vector, but it is possible to think of (<i>x,y,z</i>,0)
+as representing a 3D "point at infinity" in the direction of (<i>x,y,z</i>),
+as long as at least one of <i>x</i>, <i>y</i>, and <i>z</i> are zero. 
+</p>
+
+<p>Coordinates (<i>x,y,z,w</i>) used in this way are referred to
+as <span class="newword">homogeneous coordinates</span>.  If we use homogeneous coordinates, then any
+4-by-4 matrix can be used to transform three-dimensional vectors, and among the transformations
+that can be represented in this way is the projection transformation for a perspective
+projection.  And in fact, this is what OpenGL does internally.  It represents all three-dimensional
+points and vectors using homogeneous coordinates, and it represents all transformations as
+4-by-4 matrices.  You can even specify vertices using homogeneous coordinates.  For example, the
+command
+</p>
+
+<pre>gl.glVertex4d(x,y,z,w);</pre>
+
+<p class="np">generates the 3D point <span class="code">(x/w,y/w,z/w)</span>.  Fortunately, you will almost never
+have to deal with homogeneous coordinates directly.  The only real exception to this is
+that homogeneous coordinates are required, surprisingly, when configuring OpenGL lighting, as
+we'll see in the next section.</p>
+
+</div>
+
+
+<p class="nav">[
+<a href="07_GLUT_and_JOGL.html">Previous Section</a> |
+<a href="09_Light_and_Material.html">Next Section</a> |
+<a href="index.html">Index</a>
+]</p>
+
+</div>
+
+</body>
+</html>

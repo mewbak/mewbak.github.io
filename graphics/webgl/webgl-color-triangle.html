@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<!--
+   This page is a simple demo of WebGL.  It draws a triangle
+   where each vertex has a different color.  Ititially the
+   colors are red/green/blue, but the user can randomize
+   the colors by clicking a button.  In this program, color
+   is a varying variable, and there is a vertexColor attribute
+   to specify the colors for the three vertices.
+-->
+
+<html>
+<head>
+<meta charset="UTF-8">
+<title>WebGL Polygon Test</title>
+
+<!--  This program uses the technique of puttin the vertex and
+shader source code into script elements with bogus types.  The web
+browser doesn't try to exectue these scripts, but the text content
+can be extracted and used to create the shader program.
+-->
+<script type="x-shader/x-fragment" id="vsource">
+    attribute vec2 coords;      // xy-coordinates for this vertex
+    attribute vec3 vertexColor; // RGB color for this vertex
+    varying vec3 color;         // color to be interpolated for the fragment shader
+    void main() {
+        gl_Position = vec4( coords.x, coords.y, 0.0, 1.0 );
+        color = vertexColor;
+}
+</script>
+<script type="x-shader/x-fragment" id="fsource">
+    precision mediump float;
+    varying vec3 color;
+    void main() {
+        gl_FragColor = vec4( color.r, color.g, color.b, 1.0 );
+    }
+</script>
+
+<script type="text/javascript">
+
+"use strict";
+
+var gl;   // The WebGL graphics context.
+
+var prog; // The shader program.
+
+var aVertexColor;   // Location of the "vertexColor" attribute in the shader program.
+var aVertexColorBuffer;  // Data buffer to hold values for the "vertexColor" attribute.
+
+var aCoords;  // Location of the "coords" attribute in the shader program.
+var aCoordsBuffer;  // Data buffer to hold values for "coords" attribute.
+
+/* A Float32Array to hold values for the color buffer.  It is initialized
+   from a regular array that holds the RGB color components for red, green,
+   and blue. */
+var vertexColors = new Float32Array( [ 1,0,0, 0,1,0, 0,0,1 ] );
+    
+    
+/* Render the image. This is called in init() and also when the
+ * user clicks the "Randomize Color" button.  Note that the values
+ * in the color array, vertexColors, will be different each time
+ * draw is called, so we re-load the data every time.
+ */
+function draw() {
+    
+    /* Clear the drawing area to black. */
+    gl.clearColor(0,0,0,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    /* Set up data for the vertexColor attribute variable. */
+    gl.enableVertexAttribArray(aVertexColor);
+    gl.bindBuffer(gl.ARRAY_BUFFER, aVertexColorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertexColors, gl.STREAM_DRAW);
+    gl.vertexAttribPointer(aVertexColor, 3, gl.FLOAT, false, 0, 0);
+    
+    /* Tell WebGL to render the triangle. */
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+} // end draw()
+
+
+/* This function is called in response to the "Randomize Colors" button.
+ * It fills the vertexColors array with random values, then calls draw().
+ */
+function randomizeColors() {
+    for (var i = 0; i < vertexColors.length; i++) {
+        vertexColors[i] = Math.random();
+    }
+    draw();
+}
+
+/* This function is called in response to the "Use Red/Green/Blue" button.
+ * It sets the vertex color array to red, green, blue, then calls draw().
+ */
+function normalColors() {
+    vertexColors = new Float32Array( [ 1,0,0, 0,1,0, 0,0,1 ] );
+    draw();
+}
+
+
+/* Creates a program for use in the WebGL context gl, and returns the
+ * identifier for that program.  If an error occurs while compiling or
+ * linking the program, an exception of type String is thrown.  The error
+ * string contains the compilation or linking error.  If no error occurs,
+ * the program identifier is the return value of the function.
+ */
+function createProgram(gl, vertexShaderSource, fragmentShaderSource) {
+   var vsh = gl.createShader( gl.VERTEX_SHADER );
+   gl.shaderSource(vsh,vertexShaderSource);
+   gl.compileShader(vsh);
+   if ( ! gl.getShaderParameter(vsh, gl.COMPILE_STATUS) ) {
+      throw "Error in vertex shader:  " + gl.getShaderInfoLog(vsh);
+   }
+   var fsh = gl.createShader( gl.FRAGMENT_SHADER );
+   gl.shaderSource(fsh, fragmentShaderSource);
+   gl.compileShader(fsh);
+   if ( ! gl.getShaderParameter(fsh, gl.COMPILE_STATUS) ) {
+      throw "Error in fragment shader:  " + gl.getShaderInfoLog(fsh);
+   }
+   var prog = gl.createProgram();
+   gl.attachShader(prog,vsh);
+   gl.attachShader(prog, fsh);
+   gl.linkProgram(prog);
+   if ( ! gl.getProgramParameter( prog, gl.LINK_STATUS) ) {
+      throw "Link error in program:  " + gl.getProgramInfoLog(prog);
+   }
+   return prog;
+}
+
+
+/* Gets the text content of an HTML element.  This is used
+ * to get the shader source from the script elements that contain
+ * it.  The parameter should be the id of the script element.
+ */
+function getTextContent( elementID ) {
+    var element = document.getElementById(elementID);
+    var fsource = "";
+    var node = element.firstChild;
+    var str = "";
+    while (node) {
+        if (node.nodeType == 3) // this is a text node
+            str += node.textContent;
+        node = node.nextSibling;
+    }
+    return str;
+}
+
+
+/* Function to be called by the body onload event, when the page has loaded.
+ */
+function init() {
+
+    try {
+        /* Initialize the WebGL graphics context for drawing on the canvas. */
+        var canvas = document.getElementById("webglCanvas");
+        gl = canvas.getContext("webgl");
+        if ( ! gl ) {
+            gl = canvas.getContext("experimental-webgl");
+        }
+    }
+    catch (e) {
+        gl = null;
+    }
+
+    if (!gl) {
+        document.getElementById("message").innerHTML =
+            "Sorry, could not initialize the WebGL drawing context.";
+        return;
+    }
+    try {
+        /* Create the shader program, using shader source from script elements. */
+        var vertexShaderSource = getTextContent("vsource");
+        var fragmentShaderSource = getTextContent("fsource");
+        prog = createProgram(gl, vertexShaderSource, fragmentShaderSource);
+    }
+    catch (e) {
+        document.getElementById("message").innerHTML =
+            "Could not compile the WebGL shader program:<br>" + e;
+        return;
+    }
+    
+    /* Get the location for shader program variables */
+    aVertexColor = gl.getAttribLocation(prog, "vertexColor");
+    aCoords = gl.getAttribLocation(prog, "coords");
+    
+    /* Create buffers to hold data for the attribute variable. */
+    aVertexColorBuffer = gl.createBuffer();
+    aCoordsBuffer = gl.createBuffer();
+    
+    /* Tell the graphics context to use the shader program for drawing. */
+    gl.useProgram(prog);
+    
+    /* Since the vertices of the triangle never change, they are loaded
+       here once and for all into aCoordsBuffer. */
+    gl.enableVertexAttribArray(aCoords);
+    gl.bindBuffer(gl.ARRAY_BUFFER, aCoordsBuffer);
+    gl.vertexAttribPointer(aCoords, 2, gl.FLOAT, false, 0, 0);
+    var vertices = new Float32Array( [ 0,0.7, -0.7,-0.5, 0.7,-0.5 ] );
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+    
+    /* Call the draw routine to render the image. */
+    draw();
+
+} // end init()
+
+</script>
+
+</head>
+
+<body onload="init()">
+
+<noscript>
+   <p><b>Sorry, this page uses WebGL for drawing and requires JavaScript.</b></p>
+</noscript>
+
+<p style="color:red; font-weight: bold" id="message"></p>
+
+<p><button onclick="randomizeColors()">Randomize Colors</button>
+<button onclick="normalColors()">Use Red/Green/Blue</button>
+
+</p>
+
+
+<div>
+<canvas width=512 height=512 id="webglCanvas"></canvas>
+</div>
+
+</body>
+</html>

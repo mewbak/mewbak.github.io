@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<head>
+<meta charset="UTF-8">
+<title>Three.js Texture Demo</title>
+<script type="text/javascript" src="three.min.js"></script>
+<script type="text/javascript">
+
+/* This program can show a variety of textures on a variety
+ * of objects, using three.js.  WebGL is required.  The user
+ * can rotate the view with the arrow keys.  (They rotate the
+ * camera with an attached light about the origin.)  The return
+ * or HOME key will set rotation to zero.  There is a checkbox
+ * that enables a texture animation that makes the texture
+ * move across the object.  NOTE:  In some browsers, the
+ * textures won't work when the page is loaded from the file
+ * system rather than through a web browser.
+ */
+
+"use strict";
+
+var scene, camera, renderer;  // Three.js rendering basics.
+
+var cameraAndLight;  // Object holding both camera and light, for rotation.
+
+var objects = [];   // The available objects, to be created in createWorld()
+var currentObject;  // The currently displayed object, one of the objects in the array.
+var material;       // The material, which is used on all the objects
+var textureURL = [  // URLs of the available textures.
+       "textures/brick001.jpg",
+       "textures/Earth-1024x512.jpg",
+       "textures/NightEarth-512x256.jpg",
+       "textures/marble.jpg",
+       "textures/metal003.gif",
+       "textures/mandelbrot.png",
+   ];
+var currentTexture;  // The currently used texture.
+var textureOffsetS;  // Horizontal texture offset, for the texture animation.
+var textureOffsetT;  // Vertical texture offset, for the texture animation.
+
+
+/**
+ *  Creates all the objects that are available to be viewed.  Adds the first
+ *  object to the scene.  Adds a light and camera to the scene.  Create the
+ *  material, but does not add a texture to it; that's done in installTexture();
+ */
+function createWorld() {
+
+   material = new THREE.MeshPhongMaterial( {
+         color: "white",
+         specular: 0x333333,
+         side: THREE.DoubleSide  // so it will  work with open tube and plane
+      } );
+
+   objects.push( new THREE.Mesh( new THREE.CubeGeometry(12,12,12), material ) );
+   objects.push( new THREE.Mesh( new THREE.SphereGeometry(8,48,24), material ) );
+   objects.push( new THREE.Mesh( new THREE.CylinderGeometry(7,7,15,32,1), material ) );
+   objects.push( new THREE.Mesh( new THREE.CylinderGeometry(0,7,15,32,1), material ) );
+   objects.push( new THREE.Mesh( new THREE.TorusGeometry(6,4,16,64), material ) );
+   objects.push( new THREE.Mesh( new THREE.CylinderGeometry(5,5,12,32,1,true), material ) );
+   objects.push( new THREE.Mesh( new THREE.PlaneGeometry(20,15), material ) ) ;
+   
+   // The last object is a "pill", a hierarchical object made from a tube and two hemispheres.
+   var hemisphereGeom = new THREE.SphereGeometry( 5, 32, 16, 0, 2*Math.PI, 0, Math.PI/2 );
+   var tubeGeom = new THREE.CylinderGeometry( 5, 5, 8, 32, 5, true );
+   var top = new THREE.Mesh( hemisphereGeom, material );
+   var bottom = new THREE.Mesh( hemisphereGeom, material );
+   var pill = new THREE.Mesh( tubeGeom, material );
+   top.position.y = 4;  // move to top of cylinder
+   bottom.rotation.x = Math.PI; // rotate so it's facing down
+   bottom.position.y = -4; // move to bottom of cylinder
+   pill.add(top);
+   pill.add(bottom);
+   objects.push(pill);
+
+   currentObject = objects[0];
+   scene.add(objects[0]);
+   var light = new THREE.DirectionalLight();
+   light.position.set(0,0,1);
+   camera.position.set(0,0,30);
+   cameraAndLight = new THREE.Object3D();
+       // cameraAndLight contains a camera that is at (0,0,30) and a light that shines
+       // from the direction of the camera, in cameraAndLight's object coordinate system.
+       // setting the rotation of the cameraAndLight object will rotate both the camera
+       // and light together about the origin.
+   cameraAndLight.add(camera);
+   cameraAndLight.add(light);
+   cameraAndLight.rotation.set(-Math.PI/12,-Math.PI/12,0);  // initial rotation
+   scene.add(cameraAndLight);
+}
+
+
+/**
+ *  Add one of the available textures to the array.  It's assumed that the textures are
+ *  in fact available in a texture folder in the same web page as the 
+ */
+function installTexture(textureNum) {
+   var callback = function() {
+         // to be called after the texture is loaded, to show the new texture
+       material.needsUpdate = true;
+       if (!animating) { // note that if animating, it will be rendered automatically
+           render();
+       }
+   };
+   var texture = THREE.ImageUtils.loadTexture(textureURL[textureNum], undefined, callback);
+         // (the "undefined" here will use the default value for the 2nd parameter)
+   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;  // Important to set repeat mode!!
+   material.map = texture; // Applies this texture to the material and hence to the object.
+   material.needsUpdate = true;  // Essential to tell three.js that material properties have changed!!
+   textureOffsetS = 0;  // we start the texture with no texture offset
+   textureOffsetT = 0;
+   currentTexture = texture;
+   if (!animating) {
+          // Note that when the object first renders with this texture, the texture
+          // image might not have been loaded yet; if not, the object will be black.
+       render();
+   }
+}
+
+
+/**
+ *  Render the scene.  This is called by init() and when the object, texture, rotation,
+ *  or texture offset is changed.
+ */
+function render() {
+    renderer.render(scene, camera);
+}
+
+
+/**
+ *  When an animation is in progress, this function is called just before rendering each
+ *  frame of the animation.  In this case, small amounts are added to the horizontal and
+ *  veritcal textrue obbsets.
+ */
+function updateForFrame() { 
+   textureOffsetS -= 0.0023;
+   textureOffsetT -= 0.00137;
+   currentTexture.offset.set(textureOffsetS,textureOffsetT);
+   currentTexture.needsUpdate;  // Essential to tell three.js that texture properties have changed!!
+}
+
+
+/**
+ *  An event listener for key events, installed in init()
+ */
+function doKey(evt) {
+    var moved = true;
+	switch (evt.keyCode) {
+	    case 37: cameraAndLight.rotateY(0.05); break;       // left
+	    case 39: cameraAndLight.rotateY(-0.05); break;      // right
+	    case 38: cameraAndLight.rotateX(0.05); break;       // up
+	    case 40: cameraAndLight.rotateX(-0.05); break;      // down
+	    case 13: cameraAndLight.rotation.set(0,0,0); break; // return
+	    case 36: cameraAndLight.rotation.set(0,0,0); break; // home
+	    default: moved = false;
+	}
+	if (moved) {
+	    evt.preventDefault();
+        if (!animating) {
+            render();
+        }
+    }
+}
+
+
+/**
+ *  An event listener for the onchange event on the select element that
+ *  controls what texture is currently selected.
+ */
+function doTextureSelect() {
+    var texNum = document.getElementById("textureSelect").value;
+    texNum = Number(texNum);
+    installTexture(texNum); 
+    document.getElementById("animationCheckbox").focus(); 
+            // so key presses won't keep going to textureSelect
+}
+
+
+/**
+ *  An event listener for the onchange event on the select element that
+ *  controls which object is currently selected for viewing.
+ */
+function doObjectSelect() {
+    var objNum = document.getElementById("objectSelect").value;
+    objNum = Number(objNum);
+    scene.remove(currentObject);
+    scene.add(objects[objNum]);
+    currentObject = objects[objNum];
+    material.needsUpdate = true; // I'm not sure why this is required??
+    document.getElementById("animationCheckbox").focus(); 
+            // (so key presses won't keep going to objectSelect)
+    if (! animating) {
+        render();
+    }
+}
+
+//--------------------------- animation support -----------------------------------
+
+var clock;  // Keeps track of elapsed time of animation. (NOT USED IN THIS EXAMPLE)
+
+var animating = false;
+
+function doFrame() {  
+	if (animating) {
+        clock.frameNumber++;
+	    updateForFrame();
+	    render();
+		requestAnimationFrame(doFrame); 
+	}
+}
+
+function startAnimation() {
+    if (!animating) {
+	   if (!clock) {
+		  clock = new THREE.Clock(false);
+		  clock.frameNumber = 0;
+		  clock.getFrameNumber = function() { return this.frameNumber }
+	   }
+	   clock.start();
+	   animating = true;
+	   requestAnimationFrame(doFrame);
+	}
+}
+
+function pauseAnimation() {
+	if (animating) {
+	    clock.stop();
+	    animating = false;
+	}
+}
+
+function doAnimationCheckbox() {
+    if ( document.getElementById("animationCheckbox").checked )
+    	startAnimation();
+    else
+    	pauseAnimation();
+}
+
+//----------------------------------------------------------------------------------
+
+/**
+ *  This init() function is called when by the onload event when the document has loaded.
+ */
+function init() {
+    try {
+        var theCanvas = document.getElementById("cnvs");
+        if (!theCanvas || !theCanvas.getContext) {
+            document.getElementById("message").innerHTML = 
+                         "Sorry, this page does support canvas graphics.";
+            return;
+        }
+        try {
+            if (window.WebGLRenderingContext) {
+                renderer = new THREE.WebGLRenderer( { 
+                   canvas: theCanvas, 
+                   antialias: true
+                } );
+            } 
+        }
+        catch (e) {
+        }
+        if (!renderer) {
+            document.getElementById("message").innerHTML = 
+                           "Sorry, WebGL is required but is not available.";
+            return;
+        }
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(50, theCanvas.width/theCanvas.height, 0.1, 100);
+        createWorld();
+        installTexture(0);
+        document.getElementById("animationCheckbox").checked = false;
+        document.getElementById("animationCheckbox").onchange = doAnimationCheckbox;
+        document.getElementById("textureSelect").value = "0";
+        document.getElementById("objectSelect").value = "0";
+        render();
+        document.addEventListener("keydown", doKey, false);
+     }
+     catch (e) {
+        document.getElementById("message").innerHTML = "Sorry, an error occurred: " + e;
+     }
+}
+
+</script>
+</head>
+<body onload="init()">
+
+<h2>Three.js Texture Demo</h2>
+
+<noscript>
+<p style="color: #A00; font-weight: bold">Sorry, but this page requires JavaScript!</p>
+</noscript>
+
+<p style="color:#A00; font-weight: bold" id="message"></p>
+
+<p><input type="checkbox" id="animationCheckbox"> 
+    <label for="animationCheckbox">Animate Texture Offset</label></p>
+
+<div style="float:left">
+    <canvas width=640 height=480 id="cnvs" style="background-color:black"></canvas> 
+    <p><b>Arrow keys will rotate the view.<br>
+    Home or Return key will set rotation to zero.</b></p>
+</div>
+
+<div style="float:left; margin-left:1cm">
+     <p>Texture: 
+         <select id="textureSelect" onchange="doTextureSelect()">
+            <option value="0">Brick</option>
+            <option value="1">Earth</option>
+            <option value="2">Night Earth</option>
+            <option value="3">Marble</option>
+            <option value="4">Metal</option>
+            <option value="5">Mandelbrot</option>
+         </select></p>
+     <p>Object: 
+         <select id="objectSelect" onchange="doObjectSelect()">
+            <option value="0">Cube</option>
+            <option value="1">Sphere</option>
+            <option value="2">Cylinder</option>
+            <option value="3">Cone</option>
+            <option value="4">Torus</option>
+            <option value="5">Open Tube</option>
+            <option value="6">Plane</option>
+            <option value="7">Pill</option>
+         </select></p>
+</div>
+
+</body>
+</html>

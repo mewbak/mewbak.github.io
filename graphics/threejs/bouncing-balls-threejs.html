@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<head>
+<meta charset="UTF-8">
+<title>Three.js Animation Demo</title>
+<script type="text/javascript" src="three.min.js"></script>
+<script type="text/javascript">
+
+/* This program shows an animation of a number of small, randomly
+ * colored balls bouncing around inside a cube.  The cube is shown
+ * as a wireframe model.  There is a checkbox for pausing and restarting
+ * the animation.  The user can rotate the view of the scene using the
+ * arrow keys.  The HOME or return key will reset the rotation to zero.
+ * (Note:  The balls do not bounce off each other; balls just pass through
+ * other balls.)
+ */
+
+"use strict";
+
+var scene, camera, renderer;  // Three.js rendering basics.
+
+var cameraAndLight;  // Object holding both camera and light, for rotation.
+
+var balls = [];   // An array of objects, each object has data for one bouncing ball.
+
+
+
+/**
+ *  Creates the bouncing balls and the wireframe cube in which the balls bounce,
+ *  and adds them to the scene.  A light that shines from the direction of the
+ *  camera's view is also bundled with the camera and added to the scene.
+ */
+function createWorld() {
+
+    /* Add the camera and a light to the scene, linked into one object. */
+    var light = new THREE.DirectionalLight();
+    light.position.set(0,0,1);
+    camera.position.set(0,0,40);
+    cameraAndLight = new THREE.Object3D();
+    cameraAndLight.add(camera);
+    cameraAndLight.add(light);
+    scene.add(cameraAndLight);
+
+    /* Create and add the wireframe cube to the scene */
+    scene.add( new THREE.Mesh(
+        new THREE.CubeGeometry(20,20,20,4,4,4),  // 4 subdivisions in each direction
+        new THREE.MeshBasicMaterial( { color: "white", wireframe: true } )
+    ) );
+    
+    /* Create some balls and add them to the scene */
+    var geom = new THREE.SphereGeometry(1,20,12);
+    for (var i = 0; i < 50; i++) {
+        var ball = {};
+        ball.obj = new THREE.Mesh( 
+            geom, 
+            new THREE.MeshPhongMaterial( {
+                color: Math.floor(Math.random() * 0x1000000),
+                specular:0x333333,
+                shininess: 100
+            })
+        );
+        ball.x = 18*Math.random() - 9;   // set random ball position
+        ball.y = 18*Math.random() - 9;
+        ball.z = 18*Math.random() - 9;
+        ball.dx = Math.random() * 6 + 3;  // set random ball velocity, in units per second
+        ball.dy = Math.random() * 6 + 3;
+        ball.dz = Math.random() * 6 + 3;
+        if (Math.random() < 0.5)
+            ball.dx = -ball.dx;
+        if (Math.random() < 0.5)
+            ball.dy = -ball.dy;
+        if (Math.random() < 0.5)
+            ball.dz = -ball.dz;
+        ball.obj.position.set( ball.x, ball.y, ball.z);
+        scene.add(ball.obj);
+        balls.push(ball);
+    }
+}
+
+
+/**
+ *  An event listener for key events, installed in init()
+ */
+function doKey(evt) {
+    var moved = true;
+	switch (evt.keyCode) {
+	    case 37: cameraAndLight.rotateY(0.05); break;       // left
+	    case 39: cameraAndLight.rotateY(-0.05); break;      // right
+	    case 38: cameraAndLight.rotateX(0.05); break;       // up
+	    case 40: cameraAndLight.rotateX(-0.05); break;      // down
+	    case 13: cameraAndLight.rotation.set(0,0,0); break; // return
+	    case 36: cameraAndLight.rotation.set(0,0,0); break; // home
+	    default: moved = false;
+	}
+	if (moved) {
+	    evt.preventDefault();
+        if (!animating) {
+            render();
+        }
+    }
+}
+
+
+/**
+ *  Render the scene.  This is called by init() and when the object, texture, rotation,
+ *  or texture offset is changed.
+ */
+function render() {
+    renderer.render(scene, camera);
+}
+
+
+/**
+ *  When an animation is in progress, this function is called just before rendering each
+ *  frame of the animation.  In this case, the bouncing balls are moved by an amount
+ *  
+ */
+function updateForFrame() { 
+   var dt = clock.getDelta();  // time since last update
+   if (dt > 0.5) {
+       return;  // Assume animation was paused; I don't want to move the balls too much.
+   }
+   for (var i = 0; i < balls.length; i++) {
+       var ball = balls[i];
+       
+       /* update ball position based on ball velocity and elapsed time */
+       ball.x += ball.dx * dt;
+       ball.y += ball.dy * dt;
+       ball.z += ball.dz * dt;
+       
+       /* if ball has moved outside the cube, reflect it back into the cube */
+       if (ball.x > 9) {
+           ball.x -= 2*(ball.x - 9);
+           ball.dx = -Math.abs(ball.dx);
+       }
+       else if (ball.x < -9) {
+           ball.x += 2*(-9 - ball.x);
+           ball.dx = Math.abs(ball.dx);
+       }
+       if (ball.y > 9) {
+           ball.y -= 2*(ball.y - 9);
+           ball.dy = -Math.abs(ball.dy);
+       }
+       else if (ball.y < -9) {
+           ball.y += 2*(-9 - ball.y);
+           ball.dy = Math.abs(ball.dy);
+       }
+       if (ball.z > 9) {
+           ball.z -= 2*(ball.z - 9);
+           ball.dz = -Math.abs(ball.dz);
+       }
+       else if (ball.z < -9) {
+           ball.z += 2*(-9 - ball.z);
+           ball.dz = Math.abs(ball.dz);
+       }
+       
+       ball.obj.position.set(ball.x, ball.y, ball.z);
+   }
+}
+
+
+//--------------------------- animation support -----------------------------------
+
+var clock;  // Keeps track of elapsed time of animation.
+
+var animating = false;
+
+function doFrame() {  
+	if (animating) {
+        clock.frameNumber++;
+	    updateForFrame();
+	    render();
+		requestAnimationFrame(doFrame); 
+	}
+}
+
+function startAnimation() {
+    if (!animating) {
+	   if (!clock) {
+		  clock = new THREE.Clock(false);
+		  clock.frameNumber = 0;
+		  clock.getFrameNumber = function() { return this.frameNumber }
+	   }
+	   clock.start();
+	   animating = true;
+	   requestAnimationFrame(doFrame);
+	}
+}
+
+function pauseAnimation() {
+	if (animating) {
+	    clock.stop();
+	    animating = false;
+	}
+}
+
+function doAnimationCheckbox() {
+    if ( document.getElementById("animationCheckbox").checked )
+    	startAnimation();
+    else
+    	pauseAnimation();
+}
+
+//----------------------------------------------------------------------------------
+
+/**
+ *  This init() function is called when by the onload event when the document has loaded.
+ */
+function init() {
+    try {
+        var theCanvas = document.getElementById("cnvs");
+        if (!theCanvas || !theCanvas.getContext) {
+            document.getElementById("message").innerHTML = 
+                         "Sorry, this page does support canvas graphics.";
+            return;
+        }
+        try {
+            if (window.WebGLRenderingContext) {
+                renderer = new THREE.WebGLRenderer( { 
+                   canvas: theCanvas, 
+                   antialias: true
+                } );
+            } 
+        }
+        catch (e) {
+        }
+        if (!renderer) {
+            document.getElementById("message").innerHTML = 
+                           "Sorry, WebGL is required but is not available.";
+            return;
+        }
+        renderer.setClearColor( 0x444444 );  // dark gray background
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(50, theCanvas.width/theCanvas.height, 0.1, 100);
+        createWorld();
+        document.getElementById("animationCheckbox").checked = true;
+        document.getElementById("animationCheckbox").onchange = doAnimationCheckbox;
+        document.addEventListener("keydown", doKey, false);
+        startAnimation();
+     }
+     catch (e) {
+        document.getElementById("message").innerHTML = "Sorry, an error occurred: " + e;
+     }
+}
+
+</script>
+</head>
+<body onload="init()">
+
+<h2>Three.js 3D Bouncing Balls</h2>
+
+<noscript>
+<p style="color: #A00; font-weight: bold">Sorry, but this page requires JavaScript!</p>
+</noscript>
+
+<p style="color:#A00; font-weight: bold" id="message"></p>
+
+<p><b>Arrow keys will rotate the view.<br>
+    Home or Return key will set rotation to zero.</b></p>
+
+<p><input type="checkbox" id="animationCheckbox"> 
+    <label for="animationCheckbox">Animate</label></p>
+
+<div>
+    <canvas width=600 height=600 id="cnvs" style="background-color:black"></canvas> 
+</div>
+
+
+</body>
+</html>

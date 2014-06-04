@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<head>
+<meta charset="UTF-8">
+<title>Three.js Example</title>
+<script type="text/javascript" src="three.min.js"></script>
+<script type="text/javascript">
+
+/*  Show a cube with six differently colored sides using Three.js.
+ *  The cube can be rotated using the arrow keys.  The home key
+ *  or the return key will reset the rotation to zero.  WebGL
+ *  will be used if available.  If not, the program will attempt
+ *  to use the canvas 2D API.
+ */
+
+// The variables renderer, scene, and camera are the basic requirements
+// for making an image using three.js.
+
+var renderer;  // A three.js WebGL or Canvas renderer.
+var scene;     // The 3D scene that will be rendered, containing the cube.
+var camera;    // The camera that takes the picture of the scene.
+
+var cube; // The three.js object that represents the cube.
+
+var rotateX = 0.4;   // rotation of cube about the x-axis
+var rotateY = -0.5;  // rotation of cube about the y-axis
+
+
+/*  This function is called by the init() method.  Its purpose is
+ *  to add objects to the scene.  The scene, camera, and renderer
+ *  objects have already been created.
+ */
+function createWorld() {
+    var cubeGeometry = new THREE.CubeGeometry(10,10,10);
+    var cubeMaterial = new THREE.MeshFaceMaterial( [  // one material for each face
+            new THREE.MeshLambertMaterial( { color: "green" } ),   // +x face of cube
+            new THREE.MeshLambertMaterial( { color: "magenta" } ), // -x face of cube
+            new THREE.MeshLambertMaterial( { color: "blue" } ),    // +y face of cube
+            new THREE.MeshLambertMaterial( { color: "yellow" } ),  // -y face of cube
+            new THREE.MeshLambertMaterial( { color: "red" } ),     // +z face of cube
+            new THREE.MeshLambertMaterial( { color: "cyan" } )     // -z face of cube
+        ] );
+    cube = new THREE.Mesh( cubeGeometry, cubeMaterial );
+    cube.rotation.set(rotateX,rotateY,0);  // set initial rotation
+    scene.add(cube);
+    var light;  // A light shining from the direction of the camera.
+    light = new THREE.DirectionalLight();
+    light.position.set(0,0,1);
+    scene.add(light);
+}
+
+/**
+ *  The render fucntion creates an image of the scene from the point of view
+ *  of the camera and displays it in the canvas.  This is called at the end of
+ *  init() to produce the initial view of the cube, and it is called each time
+ *  the user presses an arrow key, return, or home.
+ */
+function render() {
+    renderer.render(scene, camera);
+}
+
+/**
+ *  An event listener for the keydown event.  It is installed by the init() function.
+ */
+function doKey(evt) {
+    var rotationChanged = true;
+	switch (evt.keyCode) {
+	    case 37: rotateY -= 0.05; break;        // left arrow
+	    case 39: rotateY +=  0.05; break;       // right arrow
+	    case 38: rotateX -= 0.05; break;        // up arrow
+	    case 40: rotateX += 0.05; break;        // down arrow
+	    case 13: rotateX = rotateY = 0; break;  // return
+	    case 36: rotateX = rotateY = 0; break;  // home
+	    default: rotationChanged = false;
+	}
+	if (rotationChanged) {
+       cube.rotation.set(rotateX,rotateY,0);	
+       render();
+	   evt.preventDefault();
+	}
+}
+
+/**
+ *  This function is called by the onload event so it will run after the
+ *  page has loaded.  It creates the renderer, canvas, and scene objects,
+ *  calls createWorld() to add objects to the scene, and renders the
+ *  initial view of the scene.  If an error occurs, it is reported.
+ */
+function init() {
+    try {
+        var theCanvas = document.getElementById("cnvs");
+        if (!theCanvas || !theCanvas.getContext) {
+            document.getElementById("message").innerHTML = 
+                             "Sorry, your browser doesn't support canvas graphics.";
+            return;
+        }
+        try {  // try to create a WebGLRenderer
+            if (window.WebGLRenderingContext) {
+                renderer = new THREE.WebGLRenderer( { 
+                   canvas: theCanvas, 
+                   antialias: true
+                } );
+            } 
+        }
+        catch (e) {
+        }
+        if (!renderer) { // If the WebGLRenderer couldn't be created, try a CanvasRenderer.
+            renderer = new THREE.CanvasRenderer( { canvas: theCanvas } );
+            renderer.setSize(theCanvas.width,theCanvas.height);
+            document.getElementById("message").innerHTML =
+                          "WebGL not available; falling back to CanvasRenderer.";
+        }
+        renderer.setClearColor(0x220033);  // dark violet background
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(45, theCanvas.width/theCanvas.height, 0.1, 100);
+        camera.position.z = 25;
+        createWorld();
+        render();
+        document.addEventListener("keydown", doKey, false);
+     }
+     catch (e) {
+        document.getElementById("message").innerHTML = "Sorry, an error occurred: " + e;
+     }
+}
+
+</script>
+</head>
+<body onload="init()">
+
+<h2>Three.js Example</h2>
+
+<noscript>
+<p style="color: #A00; font-weight: bold">Sorry, but this page requires JavaScript!</p>
+</noscript>
+
+<p style="color:#A00; font-weight: bold" id="message"></p>
+
+<p><b>Arrow keys rotate the cube about its x- and y-axes.<br>
+Return key or HOME key sets rotation to zero.</b></p>
+
+<canvas width=640 height=480 id="cnvs" style="background-color:black"></canvas>    
+
+</body>
+</html>

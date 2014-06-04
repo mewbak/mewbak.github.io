@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<head>
+<title>Simple Drawing Demo</title>
+<script type="text/javascript">
+    "use strict";
+    
+    var canvas;    // DOM object corresponding to the canvas
+    var graphics;  // 2D graphics context for drawing on the canvas
+        
+    function setUpMouse() {
+        var startX, startY;   // point where the mouse click occurred
+        var prevX, prevY;     // previous position of mouse during drag
+        var dragging = false; // tells whether a drag is in progress 
+        canvas.addEventListener("mousedown", function (event) {
+            if (dragging) {
+                return; // Don't start a new drag if already dragging.
+            }
+            if (event.shiftKey) {
+                graphics.clearRect(0,0,canvas.width,canvas.height);
+                return;
+            }
+            dragging = true;  // Note: might not do this in all cases.
+            var r = canvas.getBoundingClientRect();
+            startX = prevX = Math.round(event.clientX - r.left);
+            startY = prevY = Math.round(event.clientY - r.top);
+            // Do any other required initialization of the drag operation.
+        }, false);
+        document.addEventListener("mouseup", function (event) {
+            if (dragging) {
+                dragging = false;
+                // Do any end-of-drag word (generally there is none).
+            }
+        },false);
+        document.addEventListener("mousemove", function (event) {
+            if ( ! dragging ) {
+                return;  // Only respond to move if a drag is in progress.
+            }
+            var r = canvas.getBoundingClientRect();
+            var x = Math.round(event.clientX - r.left);
+            var y = Math.round(event.clientY - r.top);
+            graphics.beginPath();
+            graphics.moveTo(startX,startY);
+            graphics.lineTo(x,y);
+            graphics.stroke();
+            graphics.beginPath();
+            graphics.save();
+            graphics.moveTo(prevX,prevY);
+            graphics.lineTo(x,y);
+            graphics.lineWidth = 5;
+            graphics.strokeStyle= "red";
+            graphics.stroke();
+            graphics.restore();
+            prevX = x;
+            prevY = y;
+        },false);
+    }
+
+
+    function init() {
+        try {
+            canvas = document.getElementById("theCanvas");
+            graphics = canvas.getContext("2d");
+        }
+        catch (e) {
+            document.getElementById("message").innerHTML =
+                "Sorry, this page requires canvas graphics, but<br>" +
+                "it looks like your browser does not support it<br>" +
+                "Reported error: " + e;
+            return;
+        }
+        setUpMouse();
+    }
+</script>
+</head>
+<body onload="init()">
+
+    <h2>Simple Drawing Demo</h2>
+    
+    <p>Click-and-drag your mouse on the canvas.  Shift-click the canvas
+    to clear it.</p>
+
+    <!-- For error reporting:  the contents of the noscript tag are
+         shown only if JavaScript is not available.  The paragraph with
+         id="message" is for reporting errors using JavaScript.-->
+    <noscript><b>This page requires JavaScript, which is<br>
+       not enabled in your browser.</b></noscript>
+    <p id="message" style="color:red"></p>
+    
+    <canvas id="theCanvas" width="640" height="480"
+                style="background-color: #CCC"></canvas>
+
+</body>
+</html>

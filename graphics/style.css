@@ -1,0 +1,136 @@
+@media screen {
+    body {
+       background-color: #310;
+    }
+    div.section {
+       padding: 5px 15px;
+       margin: 10px auto;
+       border: thin solid black;
+       background-color: #FFF8D8;
+       max-width: 800px;
+    }
+    div.subsection {
+       margin-top: 1cm;
+    }
+    h2, h1 {
+       color: #800;
+       border-bottom: thick double #800;
+       padding-bottom: 7px;
+    }
+    h3 {
+       color: #800;
+       background-color: #FFE;
+       padding: 3px 10px;
+       border: thin solid #800;
+       border-radius: 16px;
+    }
+    p.nav {
+       text-align: center;
+       margin-top: 1cm;
+       padding: 4px;
+       color: #800;
+       font-weight: bold;
+       background-color: white;
+       border: thin solid #800;
+    }
+    a:link {
+       color: #800;
+    }
+    a:visited {
+       color: #844;
+    }
+    a:hover {
+       color: red;
+    }
+    .newword, .classname, .ptype {
+       color: #600;
+    }
+    span.subsection {
+        color: #800;
+    }
+    .api code {
+        color: #800;
+    }
+}
+@media print {
+    div.section {
+       padding: 5px 15px;
+    }
+    div.subsection {
+       margin-top: 1cm;
+    }
+    h2, h1 {
+       border-bottom: thick double black;
+       padding-bottom: 7px;
+    }
+    h3 {
+       padding: 3px 10px;
+       border: thin solid black;
+       border-radius: 16px;
+    }
+    p.nav {
+       display: none;
+    }
+    ul.sectionindex {
+        color: #800;
+    }
+    .api code {
+        font-weight: bold;
+    }
+}
+body {
+    font-family: serif;
+}
+pre {
+   margin-left: 2cm;
+}
+ul.sectionindex {
+   list-style-type: none;
+   font-weight: bold;
+}
+ul.sectionindex li {
+    margin-top: 5px;
+}
+ul.api li {
+    margin-top: 3px;
+}
+.newword {
+    font-weight: bold;
+    font-style: italic;
+}
+.classname {
+    font-family: sans-serif;
+}
+p {
+    text-indent: 1cm;
+}
+p.np, p[align] {
+    text-indent: 0;
+}
+.nb {
+    white-space: pre;
+}
+h3+p:first-letter {
+    font-size: 150%;
+}
+h2+p {
+    text-indent: 0;
+}
+h2+p:first-letter {
+    font-size: 200%;
+}
+h2+p:first-line {
+    font-variant: small-caps;
+}
+h1 {
+    margin-bottom: 1cm;
+}
+hr.break {
+    margin: 0 auto;
+    width: 33%;
+}
+span.subsection {
+    font-weight: bold;
+    font-size: 110%;
+}
+

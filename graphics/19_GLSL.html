@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GraphicsNotes 2013 -- Section 19: The Shader Language for WebGL</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body>
+
+<div class="section">
+    
+<h2>Section 19:&nbsp;&nbsp; The Shader Language for WebGL</h2>
+
+<p>Sorry, but this section is just an outline of what it should be.
+The intention was to introduce aspects of the shader language, GLSL, that
+were not covered in previous sections and to use them to write some
+sample shaders.  The section does discuss some examples; one does
+basic lighting and material while the others show how to use a cubemap
+texture.</p>
+
+<p>Note that there are various versions of GLSL.  When I say "GLSL"
+in this section, I mean the WebGL version.  GLSL for WebGL is
+essentially the same as GLSL&nbsp;ES&nbsp;1.0, which is used
+with OpenGL&nbsp;ES&nbsp;2.0.  This version has
+some significant differences from versions used with non-ES OpenGL.</p>
+
+<p>For more information, you can consult the
+<a href="http://www.khronos.org/registry/gles/specs/2.0/GLSL_ES_Specification_1.0.17.pdf">GLSL&nbsp;ES&nbsp;1.0&nbsp;spec</a>,
+or see the <a href="http://www.khronos.org/files/webgl/webgl-reference-card-1_0.pdf">WebGL&nbsp;reference&nbsp;card</a>
+for a brief summary.</li></p>
+
+<div class="subsection">
+<h3>Variables and Basic Data Types</h3>
+<p>I have already noted that the basic simple data types in GLSL are
+<i>bool</i>, <i>int</i>, and <i>float</i> and that there are
+vector types <i>vec2</i>, <i>vec3</i>, and <i>vec4</i> representing
+vectors of floats.  There are also vector types representing vectors
+of bools and vectors of ints, but I have not found a use for them.
+And there are matrix types <i>mat2</i>, <i>mat3</i>, and <i>mat4</i>
+representing square matrices of floats (but no matrix types for
+ints or bools).  Finally, there are the types <i>sampler2D</i>
+and <i>samplerCube</i>, which are used for working with textures.</p>
+<p>It is worth emphasizing that GLSL does not have pointers or objects
+and it does not use a <i>new</i> operator.  For example, when you declare
+a variable of type <i>vec4</i>, you get memory space for four floating
+point numbers rather than a pointer, as you would in Java.</p>
+<p>GLSL uses what it calls <span class="newword">constructors</span> to create
+values.  A constructor is basically a function whose name is that same as the name
+of a data type such as <i>vec4</i> or <i>mat3</i>.  As parameters, you have
+to provide enough data to exactly fill the value that is being created,
+but GLSL is flexible about how the data can be provided.  For example,
+you can construct a <i>vec4</i> from four <i>floats</i>, from a <i>vec3</i>
+and one <i>float</i>, from two <i>vec2s</i>, and so on.  And you can,
+for example, construct a <i>mat4</i> from 16 <i>floats</i> or from
+four <i>vec4s</i>.</p>
+<p>The components of a vector can be referred to using array notation,
+such as <i>vector</i><tt>[1]</tt>, or using subscripts, such as <i>vector.y</i>
+or <i>vector.g</i>.  An unusual feature of GLSL is that you can use multiple
+subscripts to extract several components of a vector.  For example,
+if <i>vector</i> is a <i>vec4</i>, then <i>vector.xyz</i> is a <i>vec3</i>
+consisting of the first three components of <i>vector</i>.  You can repeat
+subscripts and put them in any order you want.  So, <i>vector.xxx</i> is
+a <i>vec3</i> consisting of three copies of <i>vector.x</i>, and <i>vector.wzyx</i>
+is a <i>vec4</i> containing the components of <i>vector</i> in reverse order.
+You can even use multiple subscripts on the left side of an assignment
+statement:</p>
+<pre>vector.xy = vec2(3.14,2.72);
+</pre>
+<p class=np>(Using multiple subscripts out of order is called <span class="newword">swizzling</span>,
+and a notation such as <i>vector.yx</i> is called a swizzler.)</p>
+</div>
+
+
+
+<div class="subsection">
+<h3>Control Structures</h3>
+<p>For control structures, GLSL has <i>if</i> statements and <i>for</i> loops.  Furthermore,
+only <i>for</i> loops of a limited kind are allowed.  Essentially only counting loops are
+allowed, where the initializer initializes a variable to a constant, the update adds a constant to
+or subtracts a constant from the variable, and the continuation test compares the variable
+to a constant.  Continue and break statements can be used in for loops.</p>
+<p>(GLSL ES 1.0, the version on which GLSL for WebGL is based, allows while loops and more general
+for loops as optional extensions, but the documentation for WebGL says that WebGL shaders cannot
+use any of the optional extensions.)</p>
+</div>
+
+
+
+<div class="subsection">
+<h3>Functions</h3>
+<p>Functions in WebGL look much like they do in C or in Java (without modifiers like
+public or static).  That is, a function definition consists of a return type, a
+function name, a list of parameters, and the function body enclosed between {&nbsp;and&nbsp;}.
+A function that does not return a value uses return type <i>void</i>.
+A <i>return</i> statement can be used to end a function and return a value. In a <i>void</i>
+function, a <i>return</i> with no value can be used to end the function early.
+Recursion is not allowed.  A function must be declared before it can be used.  (You can
+declare a function by giving its definition or by providing a <span class="newword">prototype</span>,
+which looks like a function definition with the body replaced by a semicolon.  If you provide
+a prototype, you must still provide a definition later.)</p>
+<p>Parameters in a function definition can be modified by adding <i>in</i>, <i>out</i>,
+or <i>in&nbsp;out</i>.  Parameters marked <i>in</i> are used for input to the function,
+and the value of the actual parameter is copied into the formal parameter when the function is
+called;  this is the default.  Parameters marked <i>out</i> are used for output from the
+function, and the value of the formal parameter is copied into the actual parameter when
+the function returns.  Parameters marked <i>in&nbsp;out</i> are used for both input and output,
+and the value is copied both when the function is called and when it returns.
+As a useless example,</p>
+<pre>void mkvec(in float a, in float b, out vec2 v, in out count) {
+    v = vec2(a,b);
+    count++;
+}
+</pre>
+</div>
+
+
+
+<div class="subsection">
+<h3>Data Structures</h3>
+<p>For data structures, GLSL has arrays and structs.  Only one dimensional arrays are
+allowed, and a constant array size must be provided when an array variable is declared.
+For example,</p>
+<pre>
+float data[5];    // An array of 5 floats
+vec3 vectors[3];  // An array of 3 vec3s
+lightProperties light[4];  // An array of 4 values of type lightProperties
+</pre>
+<p class=np>Note that an array variable is not a pointer to an array; it represents
+memory space for all the elements of the array.  Note that when an array is passed
+to a function as a parameter, the size of the array must be specified; for example,</p>
+<pre>float arraySum(float values[10]) { ...
+</pre>
+<p>A <span class="newword">struct</span> contains a set of named data fields.  A struct
+in GLSL is mostly the same as a struct in C, but there are some restrictions.  It is
+similar to a class in Java, but containing data members only and no functions.  For
+example, here is a struct that I will use to hold the properties of a light source:</p>
+<pre>
+struct lightProperties {
+   vec4 position;   // position.z == 0 for a directional light.
+   vec3 intensity;  // This is the color, but not restricted to the range 0 to 1.
+   vec3 ambient;    // Amount added to global ambient when this light is enabled.
+   bool enabled;    // Is this light turned on?
+};
+</pre>
+<p class=np>This defines <i>lightProperties</i> as a data type that can then be
+used to declare variables, parameters, and return types.  Note that you can
+create arrays of structs, and that structs can contain arrays.</p>
+</div>
+
+
+
+<div class="subsection">
+<h3>Operators and Built-in Functions</h3>
+<p>GLSL has most of the same operators as C or Java.  Notably missing are
+type-casting, the % operator for integer remainder, and the bitwise logical
+operators <tt>&amp;</tt>, <tt>|</tt>, <tt>^</tt>, and <tt>~</tt>.  The operators
+can be applied to vectors and matrices, not just to simple types.
+For example, <tt>+</tt> can be used to add vectors and <tt>*</tt> can be
+used to multiply matrices or to multiply a matrix times a vector.
+All of the arithmetic operations can be applied with a vector as one operand and a float as the other;
+the operation is applied to each component of the vector.  For
+example, <tt>vec3(1.0,2.0,3.0)/2.0</tt> gives the vector <tt>(0.5,1.0,1.5)</tt>.</p>
+<p>GLSL has all the usual math functions, including  <i>sin</i>, <i>cos</i>,
+<i>tan</i>, <i>asin</i>, <i>acos</i>, <i>atan</i>, <i>pow</i>, <i>exp</i>, <i>log</i>,
+<i>sqrt</i>, <i>abs</i>, <i>floor</i>, <i>ceil</i>, <i>min</i>, and <i>max</i>.
+There is a function <i>mod</i>(<i>a,b</i>) that computes the remainder when <i>a</i>
+is divided by&nbsp;<i>b</i>.  (This is similar to but not quite the same as the <tt>%</tt> operator.)
+These functions require floats as parameters and return floats as their result (even <i>floor</i>,
+<i>ceil</i>, and <i>mod</i>).  Note that the functions can be applied to vectors and in that case apply
+to each component of the vector, giving a vector as the result. 
+</p>
+<p>GLSL also has many built-in functions that are useful for graphics programming and that are
+not defined in most programming languages. For example, <i>mix</i>(a,b,t) returns the "linear blend" of <i>a</i> and
+<i>b</i> defined by <tt>t*a+(1-t)*b</tt>.  GLSL has a number of functions for working with vectors,
+including</p>
+<pre>
+length(v) -- returns the length of the vector v
+normalize(v) -- returns the unit vector equal to v / length(v)
+dot(v,w) -- returns the dot product of v and w
+cross(v,w) -- returns the cross product of v and w (for vec3 only)
+reflect(v,N) -- returns v reflected by the (normal) vector N
+</pre>
+<p class=np>The last of these can be used with a cubemap texture for reflection mapping.</p>
+<p>I should also mention two functions that are used with sampler variables to
+"sample" textures.  Recall that a <i>sampler2D</i> variable represents a texture image.
+If <i>smplr</i> is a variable of type <i>sampler2D</i> and
+<i>texCoords</i> is of type <i>vec2</i>, then</p>
+<pre>
+texture2D( smplr, texCoords )
+</pre>
+<p class=np>returns a <i>vec4</i> containing the color from the texture image at
+the point (<i>texCoords.x,texCoords.y</i>).  The texture coordinates would
+generally be derived from an attribute variable.  We have already seen an
+example of this in the <a href="15_WebGL_API.html">previous&nbsp;section</a>.</p>
+<p>WebGL also supports cubemap textures, which we have seen used for
+skyboxes and environment mapping in Three.js, in <a href="16_Threejs_Advanced.html">Section&nbsp;16</a>.
+A GLSL variable of type <i>samplerCube</i> is used to sample a color from a cube map texture.
+If <i>smplrC</i> is the <i>samplerCube</i> and <i>R</i> is a <i>vec3</i>, which should be normalized
+to have length equal to one, then</p>
+<pre>
+textureCube( smplrC, R )
+</pre>
+<p class=np>returns a sample from the cubemap texture in the direction <i>R</i>.  That is, imagining the
+cubemap texture to be assigned to an actual cube, place a ray extending in the direction of <i>R</i> from the
+center of the cube, and select the color of the point where that ray intersects the cube.  For reflection
+mapping, the texture color for a point on a surface is obtained by reflecting the direction to the
+viewer from the surface, using the normal vector. That reflected direction is used as the
+<i>vec3</i> <i>R</i> to sample the color from a cubemap texture.  It looks as though the cubemap
+texture is being reflected by the surface.</p>
+</div>
+
+
+
+
+<div class="subsection">
+<h3>Light and Material in WebGL</h3>
+<p>The sample program <a href="webgl/webgl-light-and-material.html" style="white-space:pre">webgl-light-and-material.html</a>
+is  demo of using lighting and material in WebGL.  The shader program defines a struct, <i>lightProperties</i>,
+to represent the properties of a light source and another struct, <i>materialProperties</i>,
+to represent material properties.  An array of four <i>lightProperties</i> allows for up to four light
+sources in a scene.  Two variables of type <i>materialProperties</i> are defined, to allow for different
+materials on front and back faces.  Lighting calculations are done in the fragment shader,
+where I use a function to compute the lighting equation.  Here is the fragment shader from that
+program:</p>
+<pre>
+precision mediump float;
+struct materialProperties {  // A type that defines the set of material properties.
+   vec3 ambient; 
+   vec3 diffuse; 
+   vec3 specular;
+   vec3 emissive;
+   float shininess;
+};
+struct lightProperties {  // A type that defines the set of light properties.
+   vec4 position;   // position.z == 0 for a directional light.
+   vec3 intensity;  // This is the color, but not restricted to the range 0 to 1.
+   vec3 ambient;    // Amount added to global ambient when this light is enabled.
+   bool enabled;
+};
+uniform materialProperties frontMaterial;
+          // material for front faces (and for back faces if twoSided is false)
+uniform materialProperties backMaterial;
+          // material for back faces, used only if twoSided is true
+materialProperties material;
+          // This is the material that will actually be used on this fragment
+uniform bool twoSided;
+          // If true, back faces will have a different material from front faces
+uniform mat3 normalMatrix;  // Matrix for transforming the normal vector.
+uniform lightProperties light[4];  // data for four lights
+uniform bool lit; // If false, no lighting is done;
+                  // instead the unmodified diffuse material color is used.
+uniform vec3 globalAmbient;
+     // Amount of global ambient illumination, independent of the four lights.
+varying vec3 viewCoords; // position in viewing coordinates, used for lighting.
+varying vec3 vNormal;  // The interpolated normal vector.
+
+vec3 lighting(vec3 vertex, vec3 V, vec3 N) {
+       // A function to compute the color of this fragment using the lighting
+       // equation.  vertex contains the coords of the points; V is a unit
+       // vector pointing to viewer;  N is the normal vector.  This function
+       // also uses the values in the global variables material and
+       // light[0]..light[3].
+   vec3 color = material.emissive + material.ambient * globalAmbient;
+   for (int i = 0; i < 4; i++) {
+       if (light[i].enabled) {
+           color += material.ambient * light[i].ambient;
+           vec3 L;
+           if (light[i].position.w == 0.0)
+              L = normalize( light[i].position.xyz );
+           else
+              L = normalize( light[i].position.xyz/light[i].position.w - vertex );
+           if ( dot(L,N) > 0.0) {
+              vec3 R;
+              R = (2.0*dot(N,L))*N - L;
+              color += dot(N,L)*(light[i].intensity*material.diffuse);
+              if ( dot(V,R) > 0.0)
+                 color += pow(dot(V,R),material.shininess)
+                              * (light[i].intensity * material.specular);
+           }
+       }
+   }
+   return color;
+}
+
+void main() {
+   if (lit) {
+      vec3 tnormal = normalize(normalMatrix*vNormal);
+      if (!gl_FrontFacing)
+          tnormal = -tnormal;
+      if ( gl_FrontFacing || !twoSided)
+         material = frontMaterial;
+      else
+         material = backMaterial;
+      gl_FragColor = vec4( lighting(viewCoords, normalize(-viewCoords),tnormal), 1.0 );
+   }
+   else {
+      if ( gl_FrontFacing || !twoSided )
+          gl_FragColor = vec4(frontMaterial.diffuse, 1.0);
+      else
+          gl_FragColor = vec4(backMaterial.diffuse, 1.0);
+   }
+}
+</pre>
+
+<p class=np>Note that the light and material properties are <i>uniform</i> variables in
+the fragment shader, since their values have to come from the JavaScript side.  Now,
+JavaScript only has functions for setting uniform values that are simple variables,
+vectors, or matrices.  There are no functions for setting the values of structs or
+arrays.  The solution to this problem requires treating every component of a
+struct or array as a separate uniform value.  For example, to work with a
+uniform variable of type <i>materialProperties</i>, we need five variables in
+JavaScript to represent the locations of the five components of the
+uniform variable. And to set the value of the variable, we have to set
+each component separately, with a call to one of the <i>glUniform*</i> functions.  For
+the array of four <i>lightProperties</i> that is used in this shader, we need a total
+of 16 uniform locations.</p>
+
+<p>When using <i>gl.getUniformLocation</i> to get the location of a uniform from
+a shader program, you need the name of the uniform.  When working with uniform structs
+and arrays, the name that you need is the full name of the component whose location
+you are interested in.  For example, to get the location of the <i>position</i> component
+of element number 2 of the <i>light</i> array in the above shader, we could use</p>
+
+<pre>loc = gl.getUniformLocation( prog, "light[2].position" );
+</pre>
+
+<p class=np>In fact, to manage all the uniform locations that are needed in the
+sample program, I store the locations in data structures that have the same basic
+form as the data structures in the shader program.  In JavaScript, I use a global
+variable <i>uLight</i> to refer to an array of objects holding locations of light
+properties, and I use global variables <i>uFrontMaterial</i> and <i>uBackMaterial</i>
+to refer to objects holding the locations of material properties.  The following
+code is used to initialize those JavaScript variables and to initialize the values
+of the corresponding uniform variables in the shader program:</p>
+
+<pre>
+uFrontMaterial = {};   // locations of front material properties
+uFrontMaterial.ambient = gl.getUniformLocation(prog,"frontMaterial.ambient");
+uFrontMaterial.diffuse = gl.getUniformLocation(prog,"frontMaterial.diffuse");
+uFrontMaterial.specular = gl.getUniformLocation(prog,"frontMaterial.specular");
+uFrontMaterial.emission = gl.getUniformLocation(prog,"frontMaterial.emissive");
+uFrontMaterial.shininess = gl.getUniformLocation(prog,"frontMaterial.shininess");
+
+uBackMaterial = {};   // locations of back material properties
+uBackMaterial.ambient = gl.getUniformLocation(prog,"backMaterial.ambient");
+uBackMaterial.diffuse = gl.getUniformLocation(prog,"backMaterial.diffuse");
+uBackMaterial.specular = gl.getUniformLocation(prog,"backMaterial.specular");
+uBackMaterial.emission = gl.getUniformLocation(prog,"backMaterial.emissive");
+uBackMaterial.shininess = gl.getUniformLocation(prog,"backMaterial.shininess");
+
+uLight = [];          // locations of light properties
+for (var i = 0; i < 4; i++) {
+    uLight[i] = {};   // locations of properties of light number i
+    uLight[i].position = gl.getUniformLocation(prog,"light[" + i + "].position");
+    uLight[i].intensity = gl.getUniformLocation(prog,"light[" + i + "].intensity");
+    uLight[i].ambient = gl.getUniformLocation(prog,"light[" + i + "].ambient");
+    uLight[i].enabled = gl.getUniformLocation(prog,"light[" + i + "].enabled");
+}
+
+gl.uniform3f(uFrontMaterial.ambient, 0.1, 0.1, 0.1); // Set default front material.
+gl.uniform3f(uFrontMaterial.diffuse, 0.6, 0.6, 0.6);
+gl.uniform3f(uFrontMaterial.specular, 0.3, 0.3, 0.3);
+gl.uniform3f(uFrontMaterial.emission, 0, 0, 0);
+gl.uniform1f(uFrontMaterial.shininess, 50);
+
+gl.uniform3f(uBackMaterial.ambient, 0.1, 0.1, 0.1);  // Set default back material.
+gl.uniform3f(uBackMaterial.diffuse, 0.3, 0.6, 0.6);
+gl.uniform3f(uBackMaterial.specular, 0.3, 0.3, 0.3);
+gl.uniform3f(uBackMaterial.emission, 0, 0, 0);
+gl.uniform1f(uBackMaterial.shininess, 50);
+
+for (i = 0; i < 4; i++) {  // Set default light properties.
+    gl.uniform4f(uLight[i].position, 0, 0, 1, 0);
+    gl.uniform3f(uLight[i].ambient, 0, 0, 0);
+    if (i == 0) {
+        gl.uniform3f(uLight[i].intensity, 1, 1, 1);
+        gl.uniform1i(uLight[i].enabled, 1);
+    }
+    else {
+        gl.uniform3f(uLight[i].intensity, 0, 0, 0);
+        gl.uniform1i(uLight[i].enabled, 0);
+    }
+}
+</pre>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Cube Textures and Reflection Mapping</h3>
+<p>I have written a set of examples that do skyboxes and reflection mapping in WebGL.
+(Reflection mapping is also called environment mapping.)  The examples show how
+to load and use a cubemap texture.  I won't discuss these examples
+here, but you can look at the source code to see how it's done.  The examples, which
+can be found in the directory <a href="webgl/skybox-and-reflection" style="white-space:pre">webgl/skybox-and-reflection</a>,
+are:</p>
+
+<ul>
+<li><a href="webgl/skybox-and-reflection/skybox.html">skybox.html</a></li>
+<li><a href="webgl/skybox-and-reflection/env-map.html">env-map.html</a></li>
+<li><a href="webgl/skybox-and-reflection/skybox-and-env-map.html">skybox-and-env-map.html</a></li>
+</ul>
+
+</div>
+
+
+
+<p class="nav">[
+<a href="18_WebGL_API.html">Previous Section</a> |
+<a href="index.html">Index</a>
+]</p>
+
+</div>
+
+</body>
+</html>

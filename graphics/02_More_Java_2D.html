@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GraphicsNotes 2013 -- Section 2: More Java 2D Graphics</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body>
+
+<div class="section">
+    
+<h2>Section 2:&nbsp;&nbsp; More Java 2D Graphics</h2>
+
+<p>Transforms are only one example of the advanced graphics capabilities that
+were introduced with the <span class="classname">Graphics2D</span> class.  Others
+include translucent colors, textures and gradients, wide lines, dotted and dashed lines,
+antialiasing, and the ability to draw using real-number coordinates.  In this section,
+we look at some of these features, especially those that are most relevant to
+computer graphics more generally.</p>
+
+
+<div class="subsection">
+<h3>Antialiasing</h3>
+<p><span class="newword">Aliasing</span> is a problem for
+raster-type graphics in general, caused by the fact that raster images are made up
+of small, solid-colored pixels.  It is not possible to draw geometrically perfect 
+pictures by coloring pixels.  A diagonal geometric line, for example, will cover some
+pixels only partially, and it is not possible to make a pixel half black and half white.
+When you try to draw a line with black and white pixels only, the result is a jagged
+staircase effect.  This effect is an example of aliasing.  Aliasing can also be seen
+in the outlines of characters drawn on the screen and in diagonal or curved boundaries between
+any two regions of different color.  (The term aliasing likely comes from the fact that
+most pictures are naturally described in real-number coordinates.  When you try to represent
+the image using pixels, many real-number coordinates will map to the same integer
+pixel coordinates; they can all be considered as different names or "aliases" for the
+same pixel.)
+</p>
+
+<p>
+<span class="newword">Antialiasing</span> is a term for techniques that are designed to
+mitigate the effects of aliasing.  The idea is that when a pixel is only partially
+covered by a shape, the color of the pixel should be a mixture of the color of the
+shape and the color of the background.  When drawing a black line on a white background,
+the color of a partially covered pixel would be gray, with the shade of gray depending
+on the fraction of the pixel that is covered by the line.  (In practice, calculating this
+area exactly for each pixel would be too difficult, so some approximate method is used.)
+Here, for example, are two lines, greatly magnified so that you can see the
+individual pixels.  The one on the right is drawn using antialiasing, while the one on the 
+left is not:
+</p>
+
+<p align="center">
+<img src="images/02/Antialiasing.jpg" width="300" height="300" align="center" alt=""></p>
+
+<p class="np">Note that antialiasing does not give a perfect image, but it can reduce the
+"jaggies" that are caused by aliasing.</p>
+
+<p>You can turn on antialiasing in a <span class="classname">Graphics2D</span>, and doing so is
+generally a good idea.  To do so, simply call</p>
+
+<pre>g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                             RenderingHints.VALUE_ANTIALIAS_ON);</pre>
+
+<p class="np">where <i>g2</i> is the <span class="classname">Graphics2D</span> drawing context.
+This causes subsequently drawn shapes to be antialiased.
+Antialiasing can be applied to lines, to text, and to the curved shapes such as ellipses.
+Note that turning on antialiasing is considered to be a "hint," which means that its exact 
+effect is not guaranteed.  In general, though, it does give an improved image.
+Turning antialiasing on does slow down the drawing process, and the slow-down might
+be noticeable when drawing a complex image.
+</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Real-number Coordinates, Shapes, and Paths</h3>
+
+<p>Drawing in the <span class="classname">Graphics</span> class is done using
+integer coordinates, with the measurement given in pixels.  This works well in
+the standard coordinate system.  However, once we have the ability to apply coordinate
+transformations, it no longer makes sense, since the unit of measure in a transformed
+coordinate system will not be equal to a pixel.  One unit of length might cover many
+pixels or a small fraction of a pixel.  The solution is to use real-number coordinates
+for drawing.</p>
+
+<p>In Java, the package <span class="classname">java.awt.geom</span> provides
+support for shapes defined using real number coordinates.  For example, the
+class <span class="classname">Line2D</span> in that package represents line segments
+whose endpoints are given as pairs of real numbers.  (Although the older drawing
+methods such as <i>drawLine</i> use integer coordinates, it's important to note that
+any shapes drawn using these methods are subject to the same transformation
+as shapes such as <span class="classname">Line2Ds</span> that are specified with real
+number coordinates. For example, drawing a line with <i>g.drawLine</i>(1,2,5,7)
+will have the same effect as drawing a <span class="classname">Line2D</span> that
+has endpoints (1.0,2.0) and (5.0,7.0).  In fact, all drawing is affected by
+the transformation of coordinates, even, somewhat disturbingly, the width of lines
+and the size of characters in a string.)
+</p>
+
+<p>Java has two primitive real number types: <span class="ptype">double</span> and <span class="ptype">float</span>.
+The <span class="ptype">double</span> type can represent a larger range of numbers, with a greater
+number of significant digits, than <span class="ptype">float</span>, and <span class="ptype">double</span> is the
+more commonly used type.  In fact, <span class="ptype">doubles</span> are simply easier to use in Java.
+However, <span class="ptype">float</span>  values generally have enough accuracy
+for graphics applications, and they have the advantage of taking up less space in memory.
+Furthermore, computer graphics hardware often uses float values internally.
+</p>
+
+<p>So, given
+these considerations, the <span class="classname">java.awt.geom</span> package actually provides
+two versions of each shape, one using coordinates of type <span class="ptype">float</span> and
+one using coordinates of type <span class="ptype">double</span>.  This is done in a rather strange way.
+Taking <span class="classname">Line2D</span> as an example, the class <span class="classname">Line2D</span>
+itself is an abstract class.  It has two subclasses, one that represents lines using
+<span class="ptype">float</span> coordinates and one using <span class="ptype">double</span> coordinates.
+The strangest part is that these subclasses are defined as static nested classes
+inside <span class="classname">Line2D</span>: <span class="classname">Line2D.Float</span> and
+<span class="classname">Line2D.Double</span>.  This means that you can declare a variable of
+type <span class="classname">Line2D</span>, but to create an object, you need to use
+<span class="classname">Line2D.Double</span> or <span class="classname">Line2D.Float</span>:
+</p>
+
+<pre>Line2D line1 = new Line2D.Double(1,2,5,7); // Line from (1.0,2.0) to (5.0,7.0)
+Line2D line2 = new Line2D.Float(2.7F,3.1F,1.5F,7.1F); // (2.7,3.1) to (1.5,7.1)</pre>
+
+<p class="np">For simplicity, you might want to stick to one of the types
+<span class="classname">Line2D.Double</span>
+or <span class="classname">Line2D.Float</span>, treating it as a basic type.
+<span class="classname">Line2D.Double</span>
+will be more convenient to use.  <span class="classname">Line2D.Float</span> might give better
+performance, especially if you also use variables of type <span class="ptype">float</span> to avoid
+type-casting.</p>
+
+<hr class="break">
+
+<p>Let's take a look at some of the classes in package <span class="classname">java.awt.geom</span>.
+I will discuss only some of their properties; see the API documentation for more information.
+The abstract class <span class="classname">Point2D</span>&mdash;and its concrete subclasses 
+<span class="classname">Point2D.Double</span> and <span class="classname">Point2D.Float</span>&mdash;represents
+a point in two dimensions, specified by two real number coordinates.  A point can be
+constructed from two real numbers ("<span class="code">new Point2D.Double(1.2,3.7)</span>").  If <i>p</i>
+is a variable of type <span class="classname">Point2D</span>, you can use <i>p.getX</i>() and
+<i>p.getY</i>() to retrieve its coordinates, and you can use <i>p.setX</i>(<i>x</i>),
+<i>p.setY</i>(<i>y</i>), or <i>p.setLocation</i>(<i>x</i>,<i>y</i>) to set its coordinates.
+If <i>pd</i> is a variable of type <span class="classname">Point2D.Double</span>, you can also refer
+directly to the coordinates as <i>pd.x</i> and <i>pd.y</i>
+(and similarly for <span class="classname">Point2D.Float</span>).
+Other classes in <span class="classname">java.awt.geom</span> offer a similar variety of ways
+to manipulate their properties, and I won't try to list them all here.
+</p>
+
+<p>In addition to <span class="classname">Point2D</span>, <span class="classname">java.awt.geom</span>
+contains a variety of classes that represent geometric shapes, including  <span class="classname">Line2D</span>,
+<span class="classname">Rectangle2D</span>, <span class="classname">RoundRectangle2D</span>,
+<span class="classname">Ellipse2D</span>, <span class="classname">Arc2D</span>,
+and <span class="classname">Path2D</span>.
+All of these are abstract classes, and each of them contains a pair of subclasses such as
+<span class="classname">Rectangle2D.Double</span> and <span class="classname">Rectangle2D.Float</span>.
+Each of these classes implements the interface <span class="classname">java.awt.Shape</span>, which
+represents the general idea of a geometric shape.  Some shapes, such as rectangles, have
+<span class="newword">interiors</span> that can be <span class="newword">filled</span>; such shapes also have
+outlines that can be <span class="newword">stroked</span>.  Some shapes, such as lines, are purely one-dimensional
+and can only be stroked.</p>
+
+<p>Aside from lines, rectangles are probably the simplest shapes.  A <span class="classname">Rectangle2D</span>
+has a corner point (<i>x</i>,<i>y</i>), a <i>width</i>, and a <i>height</i>, and
+can be constructed from that data ("<span class="code">new&nbsp;Rectangle2D.Double(x,y,w,h)</span>").  The corner point
+(<i>x</i>,<i>y</i>) specify the minimum <i>x</i>- and <i>y</i>-values in the rectangle.
+For the usual pixel coordinate
+system, (<i>x</i>,<i>y</i>) is the upper left corner.  However, in a coordinate system in which the
+minimum value of <i>y</i> is at the bottom, (<i>x</i>,<i>y</i>) would be the lower left corner.
+The sides of the rectangle are parallel to the coordinate axes.  A variable
+<i>r</i> of type <span class="classname">Rectangle2D.Double</span>
+or <span class="classname">Rectangle2D.Float</span>
+has public instance variables <i>r.x</i>, <i>r.y</i>, <i>r.width</i>, and <i>r.height</i>.
+If the width or the height is less than or equal to zero, nothing will be drawn when the rectangle
+is filled or stroked.   A common task is to define a rectangle by two corner points (<i>x1</i>,<i>y1</i>)
+and (<i>x2</i>,<i>y2</i>).  This can be accomplished by creating a rectangle with height and width
+equal to zero and then <i>adding</i> the second point to the rectangle.
+Adding a point to a rectangle causes the rectangle to grow just enough to include that point:
+</p>
+
+<pre>Rectangle2D.Double r = new Rectangle2D.Double(x1,y1,0,0);
+r.add(x2,y2);</pre>
+
+
+<p>The classes <span class="classname">Line2D</span>,
+<span class="classname">Ellipse2D</span>, <span class="classname">RoundRectangle2D</span>
+and <span class="classname">Arc2D</span> create other basic shapes and work similarly
+to <span class="classname">Rectangle2D</span>.  <span class="classname">Path2D</span> is more
+interesting; I will discuss it below.</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Paints and Textures</h3>
+<p>Originally, Java could draw only with basic, solid colors.  With <span class="classname">Graphics2D</span>,
+Java introduced the more general idea of <span class="newword">paint</span>.  A paint can be used both
+to stroke and to fill shapes. An object of type <span class="classname">Paint</span>
+is used to assign color to each pixel that is "hit" by a drawing operation.
+<span class="classname">Paint</span> is an <span class="code">interface</span>,
+and the <span class="classname">Color</span>
+class implements the <span class="classname">Paint</span> interface.  When a color is used
+for painting, it applies the same color to every pixel that is hit.
+However, there are other types of paint where the color that is applied to
+a pixel depends on the coordinates of that pixel.  Standard Java includes several
+classes that define paint with this property: <span class="classname">TexturePaint</span>
+and three gradient paint classes.  In a <span class="newword">gradient</span>,
+the color that is applied to pixels changes gradually from one color to anotehr
+as you move from point to point.  In a <span class="newword">texture</span>,
+the pixel colors come from an image, which is repeated, if necessary, like a wallpaper pattern
+to cover the entire <i>xy</i>-plane.  To use a paint for drawing, you can call
+<i>g2.setPaint</i>(<i>paint</i>), where <i>g2</i> is of type <span class="classname">Graphics2D.</span></p>
+
+<p>Here, we look briefly at <span class="classname">TexturePaint</span>.  Textures are an important
+concept in computer graphics.  The 2D version is fairly simple, compared to their use in 3D, but
+understanding 2D textures is good preparation for 3D.  The main point is that it's not enough
+to say that you are drawing with an image; you have to say how coordinates in the image will map
+to drawing coordinates in the display.  In Java 2D, you do this by specifying a rectangle in
+display coordinates that holds one copy of the image. You can do this in the constructor:</p>
+
+<pre>TexturePaint paint = new TexturePaint( image, rect );  
+</pre>
+
+<p class="np">where <i>image</i> is the <span class="classname">BufferedImage</span> that will be
+used for drawing, and <i>rect</i> is a <span class="classname">Rectangle2D</span> that specifies the
+display rectangle that will hold one copy of the image.  Outside that rectangle, the image is
+repeated horizontally and vertically.  Here for example is a polygon filled with two texture
+paints, both made from the same small image of a smiley face using two different rectangles:</p>
+
+<p align="center"><img src="images/02/TexturePaint.png" width="522" height="237"></p>
+
+<p class="np">For the polygon on the left, the paint object was created using</p>
+
+<pre>TexturePaint paint = new TexturePaint( smiley,
+                new Rectangle2D.Double( 0, 0, smiley.getWidth(), smiley.getHeight() ) );
+g2.setPaint(paint);
+</pre>
+
+<p class="np">For the polygon on the right, the same image was used, but the width and
+height of the rectangle were twice the widht and height of the image, giving a different mapping from
+the image onto the dispaly.</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Paths and Bezier Curves</h3>
+
+<p>In addition to basic shapes such as lines and rectangles, Java allows you to
+create arbitrary shapes out of lines and curves.  The class <span class="classname">Path2D</span>
+represents such shapes.</p>
+
+<p>A <span class="classname">Path2D</span> <i>p</i> is empty when it is first created
+("<span class="code">p&nbsp;= new&nbsp;Path2D.Double()</span>").
+You can then construct the path by moving an imaginary "pen" along the path that you want to create.
+The method <i>p.moveTo</i>(<i>x</i>,<i>y</i>) moves the pen to the point (<i>x</i>,<i>y</i>) without
+drawing anything.  It is used to specify the initial point of the path or
+the starting point of a new piece of the path.  (A path can consist of several disconnected pieces.)
+The method <i>p.lineTo</i>(<i>x</i>,<i>y</i>) draws a line
+from the current pen position to (<i>x</i>,<i>y</i>), leaving the pen at (<i>x</i>,<i>y</i>).
+The method <i>p.close</i>() can be used to close the path (or the current piece of the path) 
+by drawing a line back to its starting point.  (Note that paths don't have to be closed.)
+For example, the following code creates a triangle with vertices at (0,5), (2,&minus;3), and (&minus;4,1):
+</p>
+
+<pre>Path2D p = new Path2D.Double();
+p.moveTo(0,5);
+p.lineTo(2,-3);
+p.lineTo(-4,1);
+p.close();
+</pre>
+
+<p>The segments of a path don't have to be lines; they can also be <span class="newword">Bezier curves</span>.
+Two kinds of Bezier curve are allowed, quadratic and cubic.  A quadratic Bezier is defined by
+quadratic polynomials, while a cubic Bezier curve is defined by cubic polynomials.  The cubic
+version gives more control over the shape of the curve and so is the one that is used
+most frequently.
+</p>
+
+<p>For a Bezier curve segment, you have to specify more than just the endpoints of the curve.  You also
+have to specify <span class="newword">control points</span>.  Control points don't lie on the curve, but
+they determine the velocity or tangent of the curve at the endpoints.  A quadratic Bezier curve segment
+has one control point.  You can add a quadratic curve segment to a <span class="classname">Path2D</span> <i>p</i> using
+the method <i>p.quadTo</i>(<i>cx</i>,<i>cy</i>,<i>x</i>,<i>y</i>).  The quadratic curve has
+endpoints at the current pen position and at (<i>x</i>,<i>y</i>), with control point (<i>cx</i>,<i>cy</i>).
+As the curve leaves the current pen position, it heads in the direction of (<i>cx</i>,<i>cy</i>), with a
+speed determined by the distance between the pen position and (<i>cx</i>,<i>cy</i>).  Similarly,
+the curve heads into the point (<i>x</i>,<i>y</i>) from the direction of (<i>cx</i>,<i>cy</i>), with a speed determined
+by the distance from (<i>cx</i>,<i>cy</i>) to (<i>x</i>,<i>y</i>).  Note that the control point
+(<i>cx</i>,<i>cy</i>) is <b>not</b> on the curve&mdash;it just controls the direction of the
+curve.  A cubic Bezier curve is similar, except that it has two control points.  The first
+controls the velocity of the curve as it leaves the initial endpoint of the curve, and the
+second controls the velocity as it arrives at the final endpoint of the curve.  You can
+add a Bezier curve to a <span class="classname">Path2D</span> <i>p</i> with the method
+</p>
+
+<pre>p.curveTo( cx1, cy1, cx2, cy2, x, y )
+</pre>
+
+<p class="np">This adds a Bezier curve that starts at the current pen position and ends at
+(<i>x</i>,<i>y</i>), using (<i>cx1</i>,<i>cy1</i>) and (<i>cx2</i>,<i>cy2</i>) as
+control points.</p>
+
+<p>To get a better understanding of Bezier curves, you can
+try <a href="canvas/bezier.html">this&nbsp;live&nbsp;demo</a>, which allows you to experiment
+with Bezier curves by dragging their endpoints and control points.  Here is a picture from that demo:</p>
+
+<p align="center"><img src="images/02/bezier.png" style="border: thin solid black" height="476" width="523"></p>
+
+<p class="np">This shows a path made up of three cubic Bezier curve segmement.  The segments are drawn
+in black, with the endpoints shown as black dots.  The control points are shown as blue squares.  Note how
+the tangents to the curve are determined by the positions of the control points.</p>
+
+</div>
+
+
+
+<p class="nav">[
+<a href="01_Java_2D_Transforms.html">Previous Section</a> |
+<a href="03_Java_Hierarchical.html">Next Section</a> |
+<a href="index.html">Index</a>
+]</p>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<!--
+   This page is a simple demo of WebGL.  It draws a regular
+   polygon using the default coordinate system, with no
+   transformation applied.  It demonstrates the use of
+   attribute and uniform variables in the shader program.
+   The use controls the number of sides and the color
+   of the polygon.
+-->
+
+<html>
+<head>
+<meta charset="UTF-8">
+<title>WebGL Polygon Test</title>
+<script type="text/javascript">
+
+"use strict";
+
+var gl;   // The WebGL graphics context.
+
+var prog; // The shader program.
+
+var uColor;   // Location of the "color" uniform in the shader program.
+var aCoords;  // Location of the "coords" attribute in the shader program.
+var aCoordsBuffer;  // Data buffer to hold values for "coords" attribute.
+
+var fragmentShaderSource =  // Source code for the fragment shader.
+    "precision mediump float;\n" + 
+    "uniform vec3 color;\n" +
+    "void main() {\n" +
+    "    gl_FragColor = vec4( color.r, color.g, color.b, 1.0 );\n" +
+    "}\n";
+
+var vertexShaderSource =  // Source code for the vertex shader.
+    "attribute vec2 coords;\n" +
+    "void main() {\n" +
+    "    gl_Position = vec4( coords.x, coords.y, 0.0, 1.0 );\n" +
+    "}\n";
+
+    
+/* Render the image. This is called in init() and also when the
+ * user changes the selection in either of the two popup menus.
+ * In this program, it just draws a regular polygon.  The number of
+ * sides and the color of the polygon are selected by the user
+ * using popup menus (i.e. select elements).
+ */
+function draw() {
+    
+    /* Clear the drawing area to black. */
+    gl.clearColor(0,0,0,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    /* Set the value of the color uniform variable, depending on the
+       setting of the color popup menu. */
+    var colorName = document.getElementById("colorSelect").value;
+    if (colorName == "Red")
+        gl.uniform3f( uColor, 1, 0, 0 );
+    else if (colorName == "Blue")
+        gl.uniform3f( uColor, 0, 0, 1 );
+    else if (colorName == "Green")
+        gl.uniform3f( uColor, 0, 1, 0 );
+    else // Yellow
+        gl.uniform3f( uColor, 1, 1, 0 );
+    
+    /* Create a Float32Array holding the vertices of the polygon.  The
+       polygon is drawn using the GL_TRIANGLE_FAN primitive.  The number
+       of vertices needed to draw the polygon is one more than the number
+       of sides.  Each vertex has 2 coordinates. */
+    var polygonSides = Number(document.getElementById("sidesSelect").value);
+    var vertexCount = polygonSides + 1;
+    var vertices = new Float32Array( 2*vertexCount );
+    for (var i = 0; i < vertexCount; i++) { // Compute the vertex coordinates.
+        vertices[2*i] = 0.8*Math.cos( 2*Math.PI/polygonSides * i);
+        vertices[2*i+1] = 0.8*Math.sin( 2*Math.PI/polygonSides * i);
+    }
+    
+    /* Set up data for the coords attribute variable.  This uses the array
+       that was just computed.  Note that the first three commands here could
+       have been done in init(), since they are setting state variables that
+       don't change in this program. */
+    gl.enableVertexAttribArray(aCoords);
+    gl.bindBuffer(gl.ARRAY_BUFFER, aCoordsBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STREAM_DRAW);
+    gl.vertexAttribPointer(aCoords, 2, gl.FLOAT, false, 0, 0);
+    
+    /* Tell WebGL to render the polygon, using all the data we just set up. */
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, vertexCount);
+
+} // end draw()
+
+
+/* Creates a program for use in the WebGL context gl, and returns the
+ * identifier for that program.  If an error occurs while compiling or
+ * linking the program, an exception of type String is thrown.  The error
+ * string contains the compilation or linking error.  If no error occurs,
+ * the program identifier is the return value of the function.
+ */
+function createProgram(gl, vertexShaderSource, fragmentShaderSource) {
+   var vsh = gl.createShader( gl.VERTEX_SHADER );
+   gl.shaderSource(vsh,vertexShaderSource);
+   gl.compileShader(vsh);
+   if ( ! gl.getShaderParameter(vsh, gl.COMPILE_STATUS) ) {
+      throw "Error in vertex shader:  " + gl.getShaderInfoLog(vsh);
+   }
+   var fsh = gl.createShader( gl.FRAGMENT_SHADER );
+   gl.shaderSource(fsh, fragmentShaderSource);
+   gl.compileShader(fsh);
+   if ( ! gl.getShaderParameter(fsh, gl.COMPILE_STATUS) ) {
+      throw "Error in fragment shader:  " + gl.getShaderInfoLog(fsh);
+   }
+   var prog = gl.createProgram();
+   gl.attachShader(prog,vsh);
+   gl.attachShader(prog, fsh);
+   gl.linkProgram(prog);
+   if ( ! gl.getProgramParameter( prog, gl.LINK_STATUS) ) {
+      throw "Link error in program:  " + gl.getProgramInfoLog(prog);
+   }
+   return prog;
+}
+
+
+/* Function to be called by the body onload event, when the page has loaded.
+ */
+function init() {
+
+    try {
+        /* Initialize the WebGL graphics context for drawing on the canvas. */
+        var canvas = document.getElementById("webglCanvas");
+        gl = canvas.getContext("webgl");
+        if ( ! gl ) {
+            gl = canvas.getContext("experimental-webgl");
+        }
+    }
+    catch (e) {
+        gl = null;
+    }
+
+    if (!gl) {
+        document.getElementById("message").innerHTML =
+            "Sorry, could not initialize the WebGL drawing context.";
+        return;
+    }
+    try {
+        /* Create the shader program */
+        prog = createProgram(gl, vertexShaderSource, fragmentShaderSource);
+    }
+    catch (e) {
+        document.getElementById("message").innerHTML =
+            "Could not compile the WebGL shader program:<br>" + e;
+        return;
+    }
+    
+    /* Get the location for shader program variables */
+    uColor = gl.getUniformLocation(prog, "color");
+    aCoords = gl.getAttribLocation(prog, "coords");
+    
+    /* Create a buffer to hold data for the attribute variable. */
+    aCoordsBuffer = gl.createBuffer();
+    
+    /* Tell the graphics context to use the shader program for drawing. */
+    gl.useProgram(prog);
+    
+    /* Call the draw routine to render the image. */
+    draw();
+
+} // end init()
+
+</script>
+
+</head>
+
+<body onload="init()">
+
+<noscript>
+   <p><b>Sorry, this page uses WebGL for drawing and requires JavaScript.</b></p>
+</noscript>
+
+<p style="color:red; font-weight: bold" id="message"></p>
+
+<p>Number of sides:
+      <select id="sidesSelect" style="margin-right:1cm" onchange="draw()">
+        <option>3</option>
+        <option>4</option>
+        <option>5</option>
+        <option>6</option>
+        <option>7</option>
+        <option>8</option>
+        <option>16</option>
+        <option>32</option>
+        <option>64</option>
+      </select>
+   Color:
+      <select id="colorSelect" onchange="draw()">
+        <option>Red</option>
+        <option>Blue</option>
+        <option>Green</option>
+        <option>Yellow</option>
+      </select>
+</p>
+
+
+<div>
+<canvas width=512 height=512 id="webglCanvas"></canvas>
+</div>
+
+</body>
+</html>

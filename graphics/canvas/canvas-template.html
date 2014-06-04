@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<meta charset="UTF-8">
+<head>
+<title>Canvas Graphics</title>
+<script type="text/javascript">
+    "use strict";
+    
+    var canvas;    // DOM object corresponding to the canvas
+    var graphics;  // 2D graphics context for drawing on the canvas
+    
+    function draw() {
+        // draw on the canvas, using the graphics context
+    }
+
+    function init() {
+        try {
+            canvas = document.getElementById("theCanvas");
+            graphics = canvas.getContext("2d");
+        }
+        catch (e) {
+            document.getElementById("message").innerHTML =
+                "Sorry, this page requires canvas graphics, but<br>" +
+                "it looks like your browser does not support it<br>" +
+                "Reported error: " + e;
+            return;
+        }
+        // add any other necessary initialization
+        draw();  // draw the canvas for the first time (?)
+    }
+</script>
+</head>
+<body onload="init()">
+
+    <h2>Canvas Graphics</h2>
+
+    <!-- For error reporting:  the contents of the noscript tag are
+         shown only if JavaScript is not available.  The paragraph with
+         id="message" is for reporting errors using JavaScript.-->
+    <noscript><b>This page requires JavaScript, which is<br>
+       not enabled in your browser.</b></noscript>
+    <p id="message" style="color:red"></p>
+    
+    <canvas id="theCanvas" width="640" height="480"
+                style="background-color: #CCC"></canvas>
+
+</body>
+</html>

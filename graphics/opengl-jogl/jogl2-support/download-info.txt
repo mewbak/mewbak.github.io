@@ -1,0 +1,18 @@
+
+The jar files in this directory were obtained from the archive:
+http://jogamp.org/deployment/webstart/archive/jogamp-all-platforms.7z
+
+jogl.LICENSE.txt is from the same archive.
+
+The javadocs are from
+http://jogamp.org/deployment/webstart/archive/jogl-javadoc.7z
+(repackaged as a .zip file)
+
+Note that it also worked when I got individual jar files  from
+https://jogamp.org/deployment/archive/rc/v2.0-rc11/jar/
+
+
+All downloads done on June 25, 2016, for jogl v2.0-rc11, dated
+01-Nov-2012.
+
+

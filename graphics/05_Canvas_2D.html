@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GraphicsNotes 2013 -- Section 5: 2D Graphics with HTML Canvas</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body>
+
+<div class="section">
+    
+<h2>Section 5:&nbsp;&nbsp; 2D Graphics with HTML Canvas</h2>
+
+<p>One of the features introduced in version 5 of HTML is the &lt;canvas&gt;
+element, which comes with a JavaScript API for two-dimensional graphics.  (As we will see
+later, &lt;canvas&gt; is also used for WebGL, a 3D graphics API.  However, some
+browsers, such as Internet Explorer 9, implement the 2D canvas API but do not support
+WebGL.)  A canvas element occupies a rectangular area on a web page that can
+be used as a drawing surface.  You can combine the canvas API with other parts
+of the JavaScript API to create animations and interactive applications.
+</p>
+
+<p>A &lt;canvas&gt; element is included in the &lt;body&gt; of the web page
+in the usual way.  It can use attributes named <i>width</i> and <i>height</i>
+to specify its size in pixels, and it will usually have an <i>id</i> attribute
+that can be used to access it from JavaScript.  For example:</p>
+
+<pre>&lt;canvas id="theCanvas" width="640" height="480"&gt;&lt;/canvas&gt;
+</pre>
+
+<p class="np">You can apply CSS styles to the canvas.  For example, you can
+use CSS to add a background color or even a background image.  When a canvas is
+first created, it is filled with fully transparent pixels, so the background
+color or background image will be visible.  You could even use CSS to add a
+border, but that would affect the canvas coordinate system, so it's probably
+not a good idea.  You can always draw a border using the canvas graphics API
+if you want one.</p>
+
+<p>To draw on the canvas, you need a graphics context.  A graphics context
+is an object that contains the functions that are used for drawing and also
+contains the graphics state (such as
+current color, line width, and font).  The equivalent in Java is an object of
+type <span class="classname">Graphics</span>.  To obtain a graphics context,
+call <i>canvas.getContext</i>("2d"), where <i>canvas</i> is the DOM object
+that represents the &lt;canvas&gt; element.  Since not every browser supports
+canvas, you should check whether the operation is successful.  One way to
+do that in in a <tt class="nb">try..catch</tt> statement:</p>
+
+<pre>try {
+    canvas = document.getElementById("theCanvas");
+    graphics = canvas.getContext("2d");
+}
+catch (e) {
+    // report the error and stop processing   
+}</pre>
+
+<p class="np">Typically, you will store the graphics context in a global variable
+and use the same graphics context throughout your program.  Note that all the
+drawing that is done in a canvas is cumulative.  A canvas is never cleared
+automatically, so you need to clear it yourself when you want to start a
+new drawing.  Note also that canvases are effectively double-buffered; this means
+that the drawing that you do in JavaScript is done off-screen and does not affect
+what the user sees until the JavaScript function ends and control is returned to
+the browser, which will copy the off-screen image onto the screen.
+In particular, you can't do animation by looping inside a JavaScript function;
+the user would only see the final frame of the animation.</p>
+
+<p>The HTML file <a href="canvas/canvas-template.html">canvas-template.html</a>
+contains the basic code needed to set up drawing in a canvas.  It is meant to
+be used as a template that you can copy as a starting point for a canvas
+application.</p>
+
+<p>In the rest of this section, <i>graphics</i> is a global variable that refers
+to a 2D canvas graphics context.  Of course, you can use any name that you want
+for the variable, and you might even have several graphics contexts for drawing on
+several canvases on the same page.  I&nbsp;also assume that <i>canvas</i> is
+a global variable that refers to the canvas DOM object, but in fact you could get
+that object from the graphics context as <i>graphics.canvas</i> when you need it.</p>
+
+<div class="subsection">
+<h3>Shapes</h3>
+
+<p>Drawing on a canvas is based on <span class="classname">stroking</span> and
+<span class="classname">filling</span> shapes. To stroke a shape means to drag
+a virtual pen along the outline of the shape.  Filling means to fill the interior of
+the shape.  Stroking can be applied to any shape, including lines and to other shapes that have no
+interior.  Filling such shapes has no effect.  By default, the size of the
+pen that is used is one pixel, and the drawing is done in black.</p>
+
+<p>The default coordinate system on a canvas is similar to Java: The unit of measure is one pixel;
+(0,0) is at the upper left corner; the <i>x</i>-coordinate increases to the right;
+and the <i>y</i>-coordinate increases downward.  This coordinate system can be
+changed by applying transforms, as we will see later.  The term "one pixel" here
+is not really correct.  Probably, I should say something like "one nominal pixel."
+The unit of measure is one pixel at typical desktop resolution with no magnification.
+If you apply a magnification to a browser window, the unit of measure gets stretched.
+The unit of measure might also be different on very high resolution screens.  In any
+case, however, the range of coordinates is from 0 to the canvas width horizontally
+and from 0 to the canvas height vertically.
+</p>
+
+<p>When you stroke a shape, it's the center of the virtual pen that moves along the path.
+This is different from Java, where it is the upper left corner of pen that
+follows the path.  So, for high-precision canvas drawing, it's common to
+use paths that pass through the centers of pixels rather than through their corners.
+For example, to draw a line that extends from the pixel with coordinates (100,200) to
+the pixel with coordinates (300,200), you would actually stroke the geometric line
+with endpoints (100.5,200.5) and (100.5,300.5).  If you don't do this, the line
+will straddle two rows of pixels.  Antialiasing would make such a line look
+like a translucent, two-pixel-wide line.  However, I will not always worry about
+this level of precision.</p>
+
+<p>Moving on to the actual drawing API,
+Rectangles are a special case.  There are specific functions in the API for
+stroking and filling rectangles:</p>
+
+<ul class="api">
+<li><code>graphics.fillRect(x,y,w,h)</code> -- draws a filled rectangle with corner
+at (<i>x,y</i>), with width <i>w</i> and with height&nbsp;<i>h</i>. If the width or
+the height is less than or equal to zero, nothing is drawn.</li>
+<li><code>graphics.strokeRect(x,y,w,h)</code> -- strokes the outline of the same
+rectangle.</li>
+<li><code>graphics.clearRect(x,y,w,h)</code> -- clears the rectangle by filling
+it with fully transparent pixels, allowing the background of the canvas to show.</li>
+</ul>
+
+<p class="np">If you want to clear or fill the entire canvas, you can fill a rectangle
+whose corner is (0,0), whose width is <i>canvas.width</i> and whose height
+is <i>canvas.height</i>, where <i>canvas</i> is the DOM object corresponding to
+the canvas element.  (But note that this assumes that you have not applied a
+coordinate transformation to the graphics context.)</p>
+
+<p>There are also functions for drawing text.  Characters are considered to
+be shapes, so it is possible both to fill text and to stroke it.  To stroke
+text means to drag the pen along the outlines of the characters.  This can give
+an interesting effect, but it only makes sense if the font size is rather large.
+Functions for drawing text include</p>
+
+<ul class="api">
+<li><code>graphics.fillText(str,x,y)</code> -- fills the characters in the string <i>str</i>.
+The left end of the baseline of the string is positioned at the point (<i>x,y</i>).</li>
+<li><code>graphics.strokeText(str,x,y)</code> -- strokes the outlines of the characters in the same string.</li>
+<li><code>graphics.measureText(str).width</code>  -- returns the width of the text, the amount
+of space that it will occupy horizontally when it is drawn.  (There is apparently no way to
+get the height of the string, but you should know that from the font that has been set for
+the canvas.)</li>
+</ul>
+
+<p>All other shapes, including things as simple as lines, must be created as paths
+before they can be drawn.  This is similar to using a <span class="classname">Path2D</span>
+in Java, except that you can't work with paths as objects in JavaScript.  Instead, a graphics context has
+a single current path, which is part of the graphics state.  Every time you want to
+draw a shape, you have to recreate the path.  The path API includes:</p>
+
+<ul class="api">
+<li><code>graphics.beginPath()</code> -- start a new path.  Any previous path is discarded,
+and the current path in the graphics context is now empty.  Note that the graphics context
+also keeps track of the current point, the last point in the current path.  After calling
+<i>graphics.beginPath</i>(), the current point is undefined.</li>
+<li><code>graphics.moveTo(x,y)</code> -- move the current point to (<i>x,y</i>), without
+adding anything to the path.  This can be used for the starting point of the path or to
+start a new, disconnected segment of the path.</li>
+<li><code>graphics.lineTo(x,y)</code> -- add the line from the current point to (<i>x,y</i>) to
+the path, and move the current point to (<i>x,y</i>).</li>
+<li><code>graphics.arc(x,y,r,startAngle,endAngle,ccw)</code> -- draws an arc of a
+circle with center (<i>x,y</i>) and radius&nbsp;<i>r</i>.  The next two parameters give the
+starting and ending angle of the arc.  They are measured in radians, clockwise from the
+positive direction of the <i>x</i>-axis.  The last parameter, <i>ccw</i> is optional.  If it is <i>true</i>,
+then the arc extends in the counterclockwise direction from the start angle to the end angle.
+If it is false or absent, then the arc extends in the clockwise direction.
+The current point moves to the end of the arc.  If there is a current point before
+<i>graphics.arc</i> is called, then before the arc is drawn, a line is added to the path that extends from the
+current point to the starting point of the arc.  (Recall that immediately after <i>graphics.beginPath</i>(),
+there is no current point.)</li>
+<li><code>graphics.quadraticCurveTo(cx,cy,x,y)</code> -- draws a quadratic Bezier curve
+from the current point to (<i>x,y</i>), with control point (<i>cx,cy</i>).  (Bezier
+curves and their control points were discussed in <a href="02_More_Java_2D.html">Section&nbsp;2</a>.)</li>
+<li><code>graphics.bezierCurveTo(cx1,cy1,c2x,cy2,x,y)</code> -- draws a cubic Bezier curve
+from the current point to (<i>x,y</i>), with control points (<i>cx1,cy1</i>) and
+(<i>cx2,cy2</i>).</li>
+<li><code>graphics.closePath()</code> -- adds to the path a line from the current point
+back to the starting point of the current segment of the curve.  (Recall that you start
+a new segment of the curve every time you use <i>moveTo</i>.)</li>
+<li><code>graphics.stroke()</code> -- strokes the current path.</li>
+<li><code>graphics.fill()</code> -- fills the current path.  When filling a curve,
+the fill is done as if <i>graphics.closePath</i>() was called before doing the fill; that is not
+done for <i>graphics.stroke</i>().</li>
+</ul>
+
+
+<p class="np">We should look at some examples.  It takes four steps to draw a line:</p>
+
+<pre>graphics.beginPath();          // start a new path
+graphics.moveTo(100.5,200.5);  // starting point of the new path
+graphics.lineTo(300.5,200.5);  // add a line from the starting point to (300.5,200.5)
+graphics.stroke();             // draw the line
+</pre>
+
+<p class="np">Remember that the line remains as part of the current path until the
+next time you call <i>graphics.beginPath</i>()!  For a triangle, we just add more lines:</p>
+
+<pre>graphics.beginPath();
+graphics.moveTo(100,300);
+graphics.lineTo(400,300);
+graphics.lineTo(200,100);
+graphics.closePath();      // add a line back to the starting point, (100,300);
+graphics.stroke();</pre>
+
+<p class="np">We can draw circle with
+<i>graphics.arc</i>(), using a start angle of 0 and an end angle of <i>2*Math.PI</i>.
+Here's a filled circle with radius 100, centered at 200,300:</p>
+
+<pre>graphics.beginPath();
+graphics.arc( 200, 300, 100, 0, 2*Math.PI );
+graphics.fill();</pre>
+
+<p class="np">To draw just the outline of the circle, use <i>graphics.stroke</i>()
+in place of <i>graphics.fill</i>().  If you look at the details of <i>graphics.arc</i>(),
+you can see how to draw a wedge of a circle:</p>
+
+<pre>graphics.beginPath();
+graphics.moveTo(200,300);   // Move current point to center of the circle.
+graphics.arc(200,300,100,0,Math.PI/4);  // Arc, plus line from current point.
+graphics.lineTo(200,300);  // Line from end of arc back to center of circle.
+graphics.fill();  // Fill the wedge.
+</pre>
+
+<p class="np">For a long example of using Bezier curves, see the source
+code of the <a href="canvas/bezier.html" class="nb">Bezier curve demo</a>
+that was mentioned in <a href="02_More_Java_2D.html">Section&nbsp;2</a>.</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Colors, etc.</h3>
+
+<p>When you draw, you need more than shapes.  You want to be able to set
+attributes such as color and line width.  In the canvas API, these attributes
+are stored as properties of the graphics context object.  To change the value, assign
+a new value to the property.  The change affect drawing that is done <i>after</i>
+the change is made.  You can also use the property in an expression to get
+its current value. Line width is pretty simple, and there are two other line
+properties that you might want to use:
+</p>
+
+<ul class="api">
+<li><code>graphics.lineWidth</code> -- the value of this property is a number giving
+the size of the pen that is used for stroking shapes.  The default value is 1.
+Note that line width is subject to transformations.  If you scale by a factor of two,
+the line width doubles.</li>
+<li><code>graphics.lineCap</code> -- controls the appearance of the endpoints of lines.
+The value is one of the strings "butt", "round", or "square".  The value "round" adds
+a half-circle at the endpoint; "square" adds a half square; "butt" doesn't add anything
+and is the default.  Using "round" can make wide lines more attractive.</li>
+<li><code>graphics.lineJoin</code> -- controls the appearance of the join between
+one line and the next in a sequence of lines.  The value is one of the strings
+"miter", "round", or "bevel".  The default, "miter", gives pointy joins.  The other
+two values can be more attractive for wide lines.</li>
+</ul>
+
+<p>Colors are more complicated for several reasons.  First of all, there are
+two color properties, one used for strokes and one used for fills.  And the values
+of these properties don't have to be simple colors; they can be things like
+patterns (that is, textures) and gradients.  Here, however, I will only talk
+about colors.  But even simple colors are a little complicated, since they are
+given as CSS color values.  This means that the value that is used
+to represent a color is a string.  It can be a color name such as "white" or
+"red", it can be a CSS hexadecimal color such as "#CCCC00" or "#804A3F", or
+it can be a CSS rgb color such as "rgb(204,204,0)" or "rgb(128,74,63)".  You will
+probably be comfortable with the last version, which uses red/green/blue
+values in the range 0 to 255.  Color properties include</p>
+
+<ul class="api">
+<li><code>graphics.strokeStyle</code> -- the style that is used for stroking shapes. The
+value can be a string that specifies a CSS color value.</li>
+<li><code>graphics.fillStyle</code> -- the style that is used for filling shapes. The
+value can be a string that specifies a CSS color value.</li>
+<li><code>graphics.globalAlpha</code> -- a number in the range 0.0 to 1.0 that controls
+transparency.  This value applies to anything that is drawn.  The default value, 1.0, gives
+fully opaque drawing.  Smaller values introduce some transparency, and with a value of
+zero, drawing is fully transparent and therefore invisible.</li>
+</ul>
+
+
+<p>Finally, I note that you can set the font that is used for drawing text.  The
+value of the property <span class="api"><code>graphics.font</code></span>
+is a string that could be used as the value of the
+CSS <i>font</i> property.  As such, it can be fairly complicated, but the simplest versions
+include a font-size (such as <i>20px</i> or <i>150%</i>) and a font-family
+(such as <i>serif</i>, <i>sans-serif</i>, <i>monospace</i>, or any actual font name.)
+You can add <i>italic</i> or <i>bold</i> to the front of the string, and those aren't
+the only possibilities.  Some examples:
+</p>
+
+<pre>graphics.font = "2cm monospace";
+graphics.font = "bold 18px sans-serif";
+graphics.font = "italic 150% serif";
+</pre>
+
+<p class="np">The default is "10px sans-serif".  Note that text, like all drawing, is
+subject to coordinate transforms, so that applying a scaling operation changes the
+size of the text.  (But I have noticed some bugs in the implementation of this feature
+on my Linux computer.)</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Transforms</h3>
+
+<p>Coordinate transformations can be applied to a canvas graphics context.
+Translations, rotations, and scaling are supported and work pretty much as
+you would expect after working with them in Java.  You can also apply an arbitrary transform:
+</p>
+
+<ul class="api">
+<li><code>graphics.scale(sx,sy)</code> -- scale by <i>sx</i> in the <i>x</i>-direction
+and <i>sy</i> in the <i>y</i>-direction.</li>
+<li><code>graphics.rotate(angle)</code> -- rotate by <i>angle</i> radians about the
+origin.  A positive rotation is clockwise in the default coordinate system.</li>
+<li><code>graphics.translate(tx,ty)</code> -- translate by <i>tx</i> in the <i>x</i>-direction
+and <i>ty</i> in the <i>y</i>-direction.</li>
+<li><code>graphics.transform(a,b,c,d,e,f)</code> -- apply the transformation
+<i class="nb">xnew = a*x + c*y + e</i>, <i class="nb">ynew = b*x + d*y +f</i>.  Like the
+previous three methods, this is applied on top of any previous transformations.
+(Recall from <a href="01_Java_2D_Transforms.html">Section&nbsp;1</a> that any
+transformation can be written in this form.  For example, you can apply a shearing transformation
+by using this function.)</li>
+<li><code>graphics.setTransform(a,b,c,d,e,f)</code> -- discard the current transformation,
+and set the current transformation to be <i class="nb">xnew = a*x + c*y + e</i>,
+<i class="nb">ynew = b*x + d*y +f</i>.</li>
+</ul>
+
+<p class="np">To implement hierarchical graphics, you need to be able to save
+the current transformation so that you can restore it later.  Unfortunately,
+there is no reliable way to read the current transformation from a canvas graphics
+context.  (A way to do so has been added to the standard, but it is not implemented
+in all browsers.)  However, the graphics context itself keeps a stack of transformations
+and provides methods for pushing and popping the current transformation.  In fact,
+these methods do more than save and restore the current transformation.  They actually
+save and restore the entire state of the graphics context, including properties
+such as current colors, line width, and font:</p>
+
+
+<ul class="api">
+<li><code>graphics.save()</code> -- push a copy of the current state of the graphics
+context, including the current transformation, onto the stack.</li>
+<li><code>graphics.restore()</code> -- remove the top item from the stack, containing
+a saved state of the graphics context, and restore the graphics context to that state.</li>
+</ul>
+
+<p class="np">Using these methods, the basic setup for drawing an object with a modeling
+transform becomes:</p>
+
+<pre>
+graphics.save();          // save a copy of the current state
+graphics.translate(a,b);  // apply the modeling transformation
+graphics.rotate(r);     
+graphics.scale(s,s);
+// ......                 // Draw the object!
+graphics.restore();       // restore the saved state
+</pre>
+
+<p class="np">Note that if drawing the object includes any changes to attributes
+such as drawing color, those changes will be also undone by the call to <i>graphics.restore</i>().
+In hierarchical graphics, this is usually what you want, and it eliminates the
+need to have extra statements for saving and restoring things like color.</p>
+
+<p>To draw a hierarchical model, you need to traverse a scene graph, either
+procedurally or as a data structure.  It's pretty much the same as in Java.
+In fact, you should see that the basic concepts that you learned about
+transformations and modeling carry over to the canvas graphics API.  Those
+concepts apply very widely and even carry over to 3D graphics APIs, with
+just a little added complexity.</p>
+
+<p>For a non-trivial example of hierarchical modeling in a canvas, you can
+look at the source code for the web page
+<a href="canvas/cart-and-windmills.html">cart-and-windmills.html</a>.
+This is the same hierarchical scene that we looked at in Java.  The web page
+implements it using an object-oriented scene graph API.
+</p>
+
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Animation and Interaction</h3>
+
+<p>For really interesting graphics, you want to have animation or
+user interaction or both.  One way to implement animation in JavaScript
+is with the standard <i>setTimeout</i>() function.  (There are
+fancier ways that are considered to be superior.)  This purpose of this
+functions is to schedule a task to be run at some future time.
+The syntax is:</p>
+
+<pre>setTimeout( func, millis );
+</pre>
+
+<p class="np">Here <i>func</i> is the name of a function or is an anonymous function,
+and <i>millis</i> is a number giving the length of a time interval in milliseconds.
+The <i>setTimeout</i> function returns immediately, but approximately <i>millis</i>
+milliseconds later, the function will be executed.  It's important to understand
+that <i>setTimeout</i> does not <b>wait</b> for <i>func</i> to run; it simply schedules
+<i>func</i> to be run later and then exits.  <i>setTimeout</i>() returns a value
+that represents the timeout.  You can save this value and use it to cancel
+the execution of <i>func</i> any time before it happens by calling
+<i>clearTimeout</i>(<i>timeoutID</i>), where <i>timeoutID</i> is the value returned by
+<i>setTimeout</i>().</p>
+
+<p>To use <i>setTimeout</i> for animation, you need a repeating sequence of timeouts.
+An easy way to do that is to have <i>func</i> schedule a new timeout when it
+executes.  To run the animation, you just need to call <i>func</i> once, and after that it will continually
+re-call itself.</p>
+
+<p>Here is a framework for animating graphics that uses these ideas.  I am assuming
+that there is a function <i>draw</i>() that draws one frame of the animation and
+a function <i>updateFrame</i>() that makes any changes to variables that need to
+change between one frame and the next.  The animation can be started and stopped
+by calling <i>setAnimationRunning</i>(<i>false</i>) and
+<i>setAnimationRunning</i>(<i>true</i>).
+</p>
+
+<pre>var animationTimeout = null; // A null value means the animation is off.
+                             // Otherwise, this is the timeout ID.
+
+function frame() {
+       // Draw one frame of the animation, and schedule the next frame.
+    updateFrame();
+    draw();
+    animationTimeout = setTimeout(frame, 33);
+}
+
+function setAnimationRunning(run) {
+    if ( run ) {
+        if (animationTimeout == null) {
+                // If the animation is not already running, start
+                // it by scheduling a call to frame().
+            animationTimeout = setTimeout(frame, 33);
+        }
+    }
+    else {
+        if (animationTimeout != null) {
+                // If the animation is running, stop it by
+                // canceling the next scheduled call to frame().
+            clearTimeout(animationTimeout);
+        }
+        animationTimeout = null; // Indicates that animation is off.
+    }
+}
+</pre>
+
+<p class="np">You can start the animation running by calling
+<i>setAnimationRunning</i>(<i>true</i>) in the function that responds
+to the page's <i>onload</i> event.  In my examples, I often provide
+a checkbox to control whether the animation is running.  To do that,
+I could just add
+</p>
+
+<pre>&lt;input type="checkbox" id="animate" onchange="setAnimationRunning(this.checked)"&gt;
+         &lt;label for="animate"&gt;Run Animation&lt;/label&gt;
+</pre>
+
+<p class="np">to the HTML code. Providing such a checkbox is a simple
+example of user interaction.  It's certainly possible to add any number
+of controls to a web page and program their interaction with a canvas.
+So, you can write complex applications that use canvas as their graphics component.
+It's also possible to program mouse interaction with the canvas by
+implementing mouse-handling methods.</p>
+
+<p>If you just want to respond when the user clicks the mouse on the canvas,
+you only need to add an event listener for the "mousedown" event to the
+canvas.  This can be done in the initialization function.  Here's how
+it would look, using an anonymous function as the event handler:</p>
+
+<pre>canvas.addEventListener("mousedown", function (event) {
+    // ... respond to the mousedown event
+}, false);
+</pre>
+
+<p class="np">  Information about the event is passed to the handler function
+in the parameter, <i>event</i>.  Often, you will want to know the coordinates of the point
+where the user clicks.  The parameter includes coordinates among its properties, but unfortunately
+they are not given in the coordinate system of the canvas.  The properties
+<i>evt.clientX</i> and <i>evt.clientY</i> give the mouse coordinates in the
+client, that is, in the part of the window where the web page is shown, with
+(0,0) at the upper left corner of the viewing area.  I have
+found that these can be converted to canvas coordinates as follows:
+</p>
+
+<pre>var r = canvas.getBoundingClientRect();
+var x = Math.round(event.clientX - r.left);
+var y = Math.round(event.clientY - r.top);
+</pre>
+
+<p class="np"><i>canvas.getBoundingClientRect</i>() returns the bounds of the
+canvas, given in client coordinates.  (I&nbsp;think that this works in all browsers that support canvas.)
+The <i>Math.round</i> is there for Firefox, which can return non-integral
+values for <i>r.left</i> and <i>r.right</i>, and in fact it could probably
+be omitted since non-integer coordinates are not a problem for drawing with canvas graphics.
+If we add the above code to the beginning of the mouse event handler, then we
+can use <i>x</i> and <i>y</i> as the coordinates of the mouse.  The event handler in the following
+example draws a circle centered at each point that is clicked:</p>
+
+<pre>canvas.addEventListener("mousedown", function (event) {
+    var r = canvas.getBoundingClientRect();
+    var x = Math.round(event.clientX - r.left);
+    var y = Math.round(event.clientY - r.top);
+    graphics.beginPath();
+    graphics.arc(x,y,25,0,2*Math.PI);
+    graphics.fill();
+}, false);
+</pre>
+
+<p>When it comes to implementing mouse-drag operations, there are a few more
+technicalities.  Whereas Java has separate mousemove and mousedrag events,
+JavaScript only has mousemove.  So, if you want to respond to dragging, you have
+to use a mousemove handler that checks that the mouse is really being dragged
+and not just moved.  A second issue is that the mouseup event that follows a
+mousedown in the canvas is not necessarily sent to the canvas.  If the user
+moves the mouse out of the canvas before releasing the mouse button, then
+the event is not sent to the canvas.  You can solve this by adding the
+mouse event listener to the document as a whole instead of to the canvas.
+There is a predefined variable <i>document</i> that represents the
+whole document, and you can add the mouseup listener to that.  Finally, there
+is the problem that mousemove events are sent to the canvas only if
+the mouse is over the canvas.  (In Java, mousedrag events continue to be
+sent to the component that was clicked, even if the mouse moves outside that component, and
+the mouseup that ends the drag is also sent to that component.)
+If you want to continue responding to
+a drag operation when the mouse is moved outside of the canvas,
+you should attach the mousemove handler to the document rather than
+to the canvas; attaching it to the canvas could also work, depending on
+the style of interaction that you want.  Here is a general framework
+for handling mouse dragging on a canvas;  I&nbsp;put it into a function that
+you can call to install the three required listeners:</p>
+
+<pre>function setUpMouse() {
+    var startX, startY;   // point where the mouse click occurred
+    var prevX, prevY;     // previous position of mouse during drag
+    var dragging = false; // tells whether a drag is in progress 
+    canvas.addEventListener("mousedown", function (event) {
+        if (dragging) {
+            return; // Don't start a new drag if already dragging.
+        }
+        dragging = true;  // Note: might not do this in all cases.
+        var r = canvas.getBoundingClientRect();
+        startX = prevX = Math.round(event.clientX - r.left);
+        startY = prevY = Math.round(event.clientY - r.top);
+        // Do any other required initialization of the drag operation.
+    }, false);
+    document.addEventListener("mouseup", function (event) {
+        if (dragging) {
+            dragging = false;
+            // Do any end-of-drag work (generally there is none).
+        }
+    },false);
+    document.addEventListener("mousemove", function (event) {
+           // (Might want to attach to canvas rather than document.)
+        if ( ! dragging ) {
+            return;  // Only respond to move if a drag is in progress.
+        }
+        var r = canvas.getBoundingClientRect();
+        var x = Math.round(event.clientX - r.left);
+        var y = Math.round(event.clientY - r.top);
+        // Respond to change in mouse position during drag, using
+        // any of the variables startX, startY, prevX, prevY, x, y.
+        prevX = x;
+        prevY = y;
+    },false);
+}
+</pre>
+
+<p class="np">You won't need to use <i>startX</i>, <i>startY</i>,
+<i>prevX</i>, and <i>prevY</i> in every application, but they are often useful.
+Note that there is still a possible problem with the coordinates that
+are used in this example: They are expressed in the default coordinate system.
+If you have applied a coordinate transformation to the canvas, you might want
+to get coordinates expressed in the transformed coordinate system.  Unfortunately,
+the canvas API provides no easy way to do this.</p>
+
+
+<p>For a very simple demo that uses this framework, see 
+<a href="canvas/simple-drawing-demo.html" class="nb">simple-drawing-demo.html</a>.
+The demo uses one more fact about event objects: The event object for
+a mouse event contains information about which mouse button was pressed and
+which modifier keys are down.  The demo uses the property <i>event.shiftKey</i>, which
+is <i>true </i> if the shift key is being held down.</p>
+
+
+</div>
+
+
+<p class="nav">[
+<a href="04_JavaScript_Intro.html">Previous Section</a> |
+<a href="06_Into_3D_OpenGL.html">Next Section</a> |
+<a href="index.html">Index</a>
+]</p>
+
+</div>
+
+</body>
+</html>

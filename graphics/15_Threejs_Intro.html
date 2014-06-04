@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GraphicsNotes 2013 -- Section 15: Introduction to Three.js</title>
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body>
+
+<div class="section">
+    
+<h2>Section 15:&nbsp;&nbsp; Introduction to Three.js</h2>
+
+<p>For the rest of the course, we will be working with HTML and
+JavaScript to do 3D graphics.  We will soon turn to working
+directly with WebGL, the variant of OpenGL that is designed for
+use in Web Browsers.  However, before we do that, we will look
+at a higher-level API for 3D web graphics:  <span class="newword">Three.js</span>.
+You might want to review the Introduction to JavaScript in
+<a href="04_JavaScript_Intro.html">Section&nbsp;4</a> before proceeding.
+This section shows how to use in three.js many of the 3D graphics concepts that you
+already know.  In the next section, we will sample some of the
+more advanced things that can be done with three.js.</p>
+
+<p>Three.js is an object-oriented JavaScript library for 3D graphics.  It is an
+open-source project created by a <a href="https://github.com/mrdoob">Mr.doob</a>,
+and it seems to be the most popular JavaScript library for 3D.  Three.js uses concepts
+that you are already familiar with, such as 3D objects, transformations, lights,
+materials, textures, and cameras.  The basic procedure is to build a scene graph
+out of three.js objects to represent a 3D world, and then to render an image
+of that world.  Animation is done by modifying properties of the scene graph
+between frames.</p>
+
+<p>The web site for three.js is <a href="http://threejs.org">threejs.org</a>, and it
+can be downloaded from that site.  There is some
+<a href="http://threejs.org/docs/">documentation</a> available, but it is rather
+incomplete.  For full information, you need to study the source code and
+the examples that are part of the download.  There are some very useful
+tutorial and example websites for three.js, including
+Jerome Etienne's <a href="http://learningthreejs.com/">learningthreejs.com</a> and
+Lee Stemkoski's <a href="http://stemkoski.github.io/Three.js/">Three.js&nbsp;Examples</a>.
+I have made use of all these resources and am particularly indebted to the latter.
+</p>
+
+<p>Three.js works with the HTML &lt;canvas&gt; element, the same thing that we
+used for 2D graphics in <a href="05_Canvas_2D.html">Section&nbsp;5</a>.  In many web browsers, in
+addition to its 2D Graphics API, a canvas also supports drawing in 3D
+using WebGL, which is about as different as it can be from the 2D API.
+(WebGL is not available in some browsers that support &lt;canvas&gt;.
+For example, this is true in Internet Explorer 9 and 10.  WebGL will be implemented in
+Internet Explorer&nbsp;11.)  Three.js can draw to a canvas using either WebGL
+or the 2D canvas API; however, not all features are supported in both
+modes and even those that are supported might not look identical in the
+two modes.  We will prefer WebGL, when available, since it can make use
+of graphics hardware for high-speed rendering.</p>
+
+<hr class="break">
+    
+<p>The core features of three.js are defined in a single large JavaScript file named
+<i>three.js</i>, which can be found in a <i>build</i> directory in the download.
+There is also a smaller "minified" version, <i>three.min.js</i>, that contains the same definitions
+in a format that is not meant to be human-readable.  To use three.js on a web page,
+you need to include one of the two scripts in a &lt;script&gt; element on the page.
+For example, assuming that <i>three.min.js</i> is in the same folder as the web page,
+then the script element could be:</p>
+
+<pre>&lt;script type="text/javascript" src="three.min.js">&lt;/script&gt;</pre>
+
+<p class="np">In addition to this core, the three.js download has a directory containing many
+examples and a variety of support files that are used in the examples.  Although
+I will stick mainly to the core, I will also use a few of the extras and will
+note their source when I do.</p>
+
+
+<div class="subsection">
+<h3>Scene, Camera, and Renderer</h3>
+
+
+<p>Three of the most basic classes in three.js are
+<span class="classname">THREE.Scene</span>, <span class="classname">THREE.Camera</span>,
+and the two renderer classes <span class="classname">THREE.WebGLRenderer</span>
+and <span class="classname">THREE.CanvasRenderer</span>.  (All of the classes and
+constants that we will use are properties of an object named <i>THREE</i>,
+and their names begin with "<span class="classname">THREE.</span>".  I will often
+refer to classes without using this prefix, and it is not usually used in the
+three.js documentation, but you always have to use it in your code.)
+</p>
+
+<p>A scene is a holder for all the objects that make up a 3D world, including
+lights, graphical objects, and possibly cameras.  It acts as a root node for the scene
+graph.  A camera is a special kind of object that represents a viewpoint from
+which an image of a 3D world can be made.   It represents a combination of a
+viewing transformation and a projection.   A renderer is an object that creates
+the image.  The renderers that we will use always draw their image to a &lt;canvas&gt;.
+A three.js program will often keep references to at least one scene, camera, and renderer
+in global variables:</p>
+
+<pre>var scene, camera, renderer;
+</pre>
+
+<p class="np">The scene is the simplest of these.  It can be created as an object
+of type <span class="classname">THREE.Scene</span> using a constructor with no parameters:</p>
+
+<pre>scene = new THREE.Scene();</pre>
+
+<p class="np">The function <i>scene.add</i>(<i>item</i>) can be used to add cameras, lights,
+and graphical objects to the scene and is probably the only <i>scene</i> function that you
+will need to call.  The function <i>scene.remove</i>(<i>item</i>), which removes an item
+from the scene, is also occasionally useful.</p>
+
+<hr class="break">
+
+<p>There are two kinds of camera, one using orthographic projection and one using
+perspective projection.  They are represented by classes
+<span class="classname">THREE.OrthographicCamera</span> and
+<span class="classname">THREE.PerspectiveCamera</span>, which are subclasses
+of <span class="classname">THREE.Camera</span>.  The constructors specify
+the projection, using parameters that are familiar from OpenGL:</p>
+
+<pre>camera = new THREE.OrthographicCamera( xmin, xmax, ymin, ymax, near, far );
+</pre>
+
+<p class="np">or</p>
+
+<pre>camera = new THREE.PerspectiveCamera( fieldOfViewAngle, aspect, near, far );
+</pre>
+
+<p class="np">The parameters for the orthographic camera specify the x, y, and z limits
+of the view volume, in eye coordinates&mdash;that is, in a coordinate system in which the
+camera is at (0,0,0) looking in the direction of the negative <i>z</i>-axis, with the <i>y</i>-axis
+pointing up in the view.  The parameters are the same as for the OpenGL function
+<i>glOrtho</i>().  Recall that <i>near</i> and <i>far</i> give the z-limits in terms
+of distance from the camera.</p>
+
+<p>The parameters for the perspective camera come from the function <i>gluPerspective</i>()
+in OpenGL's GLU library.  The first parameter determines the vertical extent of the
+view volume, given as an angle measured in degrees.  The <i>aspect</i> is the ratio
+between the horizontal and vertical extents; it should be set to the width of the
+image over the height.  <i>near</i> and <i>far</i> give the z-limits on the view
+volume as distances from the camera; both must be positive, with <i>near</i> less
+than <i>far</i>.  (You might want to review the material on projections in
+<a href="08_Transformations_Viewing.html">Section&nbsp;8</a>.)  Typical code
+for creating a perspective camera would be:</p>
+
+<pre>camera = new THREE.PerspectiveCamera( 60, canvas.width/canvas.height, 0.1, 100 );</pre>
+
+<p class="np">where <i>canvas</i> holds a reference to the &lt;canvas&gt; element
+where the image will be displayed, possibly obtained using <i>document.getElementById</i>().
+The near and far values mean that only things between 0.1 and 100 units in front of the
+camera can be shown in the image.  Recall that using an unnecessarily large value for
+<i>far</i> or an unnecessarily small value for <i>near</i> can interfere with the accuracy of the depth test.</p>
+
+<p>A camera, like other objects, can be added to a scene, but it does not have
+to be in the scene graph to be used.  You might add it to the scene graph if
+you want it to be a parent or child of another object in the graph.
+In any case, you will want to set the
+camera's viewing transformation by positioning it and orienting it in 3D space.
+I will cover that later when I talk about transformations more generally.</p>
+
+<hr class="break">
+
+<p>A renderer that renders using WebGL is an instance of the class
+<span class="classname">THREE.WebGLRenderer</span>.  Its constructor has
+one parameter, which is a JavaScript object containing settings that
+affect the renderer.  The settings you are most likely to specify are
+<i>canvas</i>, which tells the renderer where to draw, and
+<i>antialias</i>, which asks the renderer to use antialiasing if possible:</p>
+
+<pre>renderer = new THREE.WebGLRenderer( {
+                         canvas: theCanvas,
+                         antialias: true
+                     } );
+</pre>
+
+<p class="np">Here, <i>theCanvas</i> would be a reference to the &lt;canvas&gt;
+element where the renderer will display the images that it produces.</p>
+
+<p>A renderer that uses the 2D canvas API for drawing is an object of type
+<span class="classname">THREE.CanvasRenderer</span>.  The constructor
+has just one useful setting, for setting the canvas.  However, I have found
+that a <span class="classname">CanvasRenderer</span> won't work unless
+its <i>setSize</i>() method is called.  The size should be set to the size
+of the canvas:</p>
+
+<pre>renderer = new THREE.CanvasRenderer( { canvas: theCanvas } );
+renderer.setSize( theCanvas.width, theCanvas.height );
+</pre>
+
+<p class="np">You might wonder why worry about <span class="classname">CanvasRenderer</span>
+when <span class="classname">WebGLRenderer</span> has much better performance and, for most
+things, higher quality?  The reason, of course, is that some browsers that can't
+use WebGL can still use <span class="classname">CanvasRenderer</span>.  You can design
+your web page to use <span class="classname">WebGLRenderer</span> if available and
+<span class="classname">CanvasRenderer</span> if not.</p>
+
+<p>After creating the renderer, you might want to set a background color for
+it to use.  The background color is used to clear the canvas before rendering
+the scene.  The default background color is fully transparent, so that the
+background of the canvas or web page will show through.  You can change it
+using the method <i>renderer.setClearColor</i>(<i>color</i>).  The parameter
+can be a string giving a CSS color value such as "red" or "#BBA030".  More commonly,
+it is given as an integer, expressed as a six-digit hexadecimal number.  For example,
+for a beige background, you could use</p>
+
+<pre>renderer.setClearColor( 0xf5f5dc );
+</pre>
+
+<p>But the main thing that you want to do with a renderer is render an image.
+For that, you always need a scene and a camera.
+To render an image of a given <i>scene</i> from the point of view of a <i>camera</i>,
+call</p>
+
+<pre>renderer.render( scene, camera );
+</pre>
+
+<p class="np">This is really the central command in a three.js application.</p>
+
+<p>(I should note that most of the examples that I have seen do not provide
+a canvas to the renderer; instead, they allow the renderer to create it.  After the renderer
+has been created, the canvas can be obtained from the renderer and added to
+the page.  Furthermore, the canvas generally fills the entire browser window.
+You can consult the examples in the three.js download or on the example web sites
+to see how to do that.)</p>
+
+<hr class="break">
+    
+<p>Here is a function for initializing three.js that I have used in basic applications.
+It assumes that <i>renderer</i>, <i>scene</i>, and <i>camera</i> are global variables;
+that there is a function <i>createWorld</i>() that will build the scene graph;
+that the web page contains a &lt;canvas&gt; element with <tt>id="cnvs"</tt>;
+and that it also contains an element with <tt>id="message"</tt> for displaying
+messages to the user.  This function
+would be called after the page has been loaded, such as by using
+<tt>&lt;body&nbsp;onload="init()"&gt;</tt>:</p>
+
+<pre>
+function init() {
+    try {
+        var theCanvas = document.getElementById("cnvs");
+        if (!theCanvas || !theCanvas.getContext) {
+            document.getElementById("message").innerHTML =
+                           "Sorry, can't use canvas graphics on this page.";
+            return;
+        }
+        try {
+            if (window.WebGLRenderingContext) {
+                renderer = new THREE.WebGLRenderer( { 
+                   canvas: theCanvas, 
+                   antialias: true
+                } );
+            } 
+        }
+        catch (e) {
+        }
+        if (!renderer) {
+                // The attempt to create a WebGLRenderer failed.  Use a
+                // CanvasRenderer instead.
+            renderer = new THREE.CanvasRenderer( { canvas: theCanvas } );
+            renderer.setSize(theCanvas.width,theCanvas.height);
+            document.getElementById("message").innerHTML =
+                               "WebGL not available; falling back to CanvasRenderer.";
+        }
+        // renderer.setClearColor(0x220044); // Uncomment for a dark purple background.
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(60,
+                                theCanvas.width/theCanvas.height, 0.1, 100);
+        camera.position.z = 20;  // Moves camera from origin to (20,0,0);
+        createWorld();  // This function needs to be defined to create the scene graph!
+        renderer.render(scene,camera);
+        // For an animated scene, the animation can be started here.
+     }
+     catch (e) {
+        document.getElementById("message").innerHTML =
+                            "Sorry, an error occurred: " + e;
+     }
+}
+</pre>
+
+
+
+
+</div>
+
+
+
+<div class="subsection">
+    
+<h3>Object3D, the Scene Graph, and Transformations</h3>
+
+<p>The base class in three.js for representing graphical
+objects is <span class="classname">THREE.Object3D</span>.
+An <span class="classname">Object3D</span> represents a general
+node in a scene graph.  Classes that represent lights, cameras,
+and visible graphical objects are subclasses of
+<span class="classname">Object3D</span>.
+</p>
+
+<p>As a node in a three.js scene graph, an object of type <span class="classname">Object3D</span>
+can have child nodes.  If <i>node</i> is of type <span class="classname">Object3D</span>,
+then the function <i>node.add</i>(<i>child</i>) can be used to add a child node, and
+<i>node.remove</i>(<i>child</i>) will remove an existing child.  The child nodes of
+<i>node</i> are stored in a JavaScript array <i>node.children</i>.   The object
+<i>node</i> also has a property <i>node.parent</i> which contains a reference to the
+parent of <i>node</i> in the scene graph.  (The scene graph in three.js is in fact
+a tree rather than a general directed acyclic graph.)  The <i>children</i> and <i>parent</i>
+properties can be used to traverse the scene graph.  The class
+<span class="classname">THREE.Scene</span> is a subclass of <span class="classname">THREE.Object3D</span>.
+An object that is added directly to the scene has the scene as its parent.</p>
+
+<p>Every node in a scene graph can have an associated transformation which
+represents the modeling transformation that is applied to that node and to
+its children.  An object <i>node</i> of type <span class="classname">Object3D</span>
+has several properties that represent the associated transformation.
+Those properties represent the scale, rotation, and position of <i>node</i>
+in object coordinates.  That is, they represent the scaling, rotation, and
+translation that are applied to the node to place it in the modeling
+coordinate system of its parent.  The three transformation properties
+are objects of type <span class="classname">THREE.Vector3</span>.</p>
+
+<p>A <span class="classname">Vector3</span> is simply a list of three
+numbers, and can be created with the constructor <i>new&nbsp;THREE.Vector3</i>(<i>x,y,z</i>).
+The constructor <i>new&nbsp;Vector3</i>() creates the vector (0,0,0).
+An object <i>vec</i> of type <span class="classname">Vector3</span> has
+properties <i>vec.x</i>, <i>vec.y</i>, and <i>vec.z</i> giving the three
+coordinates of the vector, and it has a function
+<i>vec.set</i>(<i>x,y,z</i>) that can be used to set all three properties
+simultaneously.  The <span class="classname">Vector3</span> class has
+a large number of methods that can be used to do vector math, including
+dot products and cross products.  We will need the function
+<i>vec.nomalize</i>(), which divides a vector by its length, transforming
+it into a vector of length one, and returns a reference to <i>vec</i>.
+</p>
+
+<p>The position of an <span class="classname">Object3D</span>
+<i>node</i> in object coordinates is represented by the property
+<i>node.position</i>, of type <span class="classname">Vector3</span>.
+You can change the position&mdash;and thus the translation transformation
+that will be applied to the node&mdash;using <i>node.position.set</i>(<i>x,y,z</i>)
+or by assigning values to the individual coordinate properties
+<i>node.position.x</i>, <i>node.position.y</i>, and <i>node.position.z</i>.
+Alternatively, you can call <i>node.translateX</i>(<i>dx</i>),
+<i>node.translateY</i>(<i>dy</i>), or <i>node.translateZ</i>(<i>dz</i>) to move
+the object by a specified amount in the direction of an axis.</p>
+
+<p>There is also a function <i>node.translateOnAxis</i>(<i>axis,amount</i>),
+where <i>axis</i> is a <span class="classname">Vector3</span> and <i>amount</i> is
+a number giving the distance to translate the object.  The object is moved
+in the direction of the vector, <i>axis</i>.  The vector must be normalized;
+that is, it must have length&nbsp;1.  For example, to translate <i>node</i>
+by 5 units in the direction of the vector (1,1,1), you could say</p>
+
+<pre>node.translateOnAxis( new THREE.Vector3(1,1,1).normalize(), 5 );
+</pre>
+
+<p>Similarly, the scaling of an <span class="classname">Object3D</span>
+<i>node</i> is given by the property <i>node.scale</i>, which is another
+<span class="classname">Vector3</span>.  The three components of the vector
+give the scaling factor in the x, y, and z directions and are by default equal
+to one.  To change the scale, you can call <i>node.scale.set</i>(<i>sx,sy,sz</i>)
+or you can set the individual components of the vector.</p>
+
+<p>Rotation is just a little more complicated.  The rotation of an
+<span class="classname">Object3D</span> <i>node</i> is also given as
+a <span class="classname">Vector3</span>, <i>node.rotation</i>.  The three
+components of this vector give the rotation of the object about the <i>x</i>-axis,
+about the <i>y</i>-axis, and about the <i>z</i>-axis, respectively.  You can
+set the components of the vector directly, or you can use the functions
+<i>node.rotateX(angle)</i>, <i>node.rotateY(angle)</i>, and
+<i>node.rotateZ(angle)</i> to change the rotation amounts.  Note that
+angles are measured in radians.  There is also a function
+<i>node.rotateOnAxis(axis,angle)</i>, where <i>axis</i> is a
+<span class="classname">Vector3</span>.  This function rotates the object through the
+angle <i>angle</i> about the vector (that is, about the line between the origin
+and the point <i>axis</i>).  Again, <i>axis</i> must be a normalized vector.</p>
+
+<p>Now, there is some subtlety here about the order in which transformations
+are applied and when they are applied.  Directly changing the components of the
+vectors <i>node.postion</i>, <i>node.scale</i>, and <i>node.rotation</i> does not
+have an immediate effect.  Instead, the values are used the next time the
+scene is rendered, and the transformations are applied to the object in the order:
+scale, rotate-z, rotate-y, rotate-x, translate.  The order in which the values are
+set is immaterial.   On the other hand, functions
+such as <i>node.rotateX</i> and <i>node.translateOnAxis</i> are applied
+immediately.  They take into account the current settings of position, scale,
+and rotate, and they modify those settings to achieve the specified transformation.
+When several such transformations are applied to an object, they affect the object
+in the reverse order in which they occur in the code.</p>
+
+<p>(Admittedly, this is confusing, and I'm not even telling you the whole story!)</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Geometry, Material, Objects</h3>
+
+<p>Three.js implements several types of 3D objects. In this section, we consider
+only lines and mesh objects, represented by the classes
+<span class="classname">THREE.Line</span> and <span class="classname">THREE.Mesh</span>,
+which are subclasses of <span class="classname">THREE.Object3D</span>.
+To create a line or a mesh, you need two things:  a
+geometry and a material.  Each of these is represented by additional
+three.js classes.</p>
+
+<p>An object of type <span class="classname">THREE.Geometry</span> contains
+an array of vertices and an array of faces, stored as properties 
+named <i>vertices</i> and <i>faces</i>.  It can also contain an array of
+colors for the vertices.  The constructor takes no parameters
+and creates a geometry object in which both arrays are empty.  For any
+useful geometry, vertices must be added to the vertex array.  Each vertex
+is an object of type <span class="classname">THREE.Vector3</span>.  For a
+mesh, it is also necessary to add faces to the face array.  We will return
+the question of faces in the next section.  In this section, we will only
+use some predefined mesh geometries.</p>
+
+<hr class="break">
+
+<p>An object of type <span class="classname">THREE.Line</span> can represent
+either a line strip or a set of disconnected line segments, what would be
+called <i>GL_LINE_STRIP</i> or <i>GL_LINES</i> in OpenGL.  Unfortunately,
+there is no option corresponding to <i>GL_LINE_LOOP</i>.  For a triangle, we
+would need a list of four vertices to be connected into a line strip, and
+these must be added to the vertex array of the line's geometry object.  For
+example:</p>
+
+<pre>var lineGeom = new Geometry();
+lineGeom.vertices.push( new THREE.Vector3(-2,-2,0) );
+lineGeom.vertices.push( new THREE.Vector3(2,-2,0) );
+lineGeom.vertices.push( new THREE.Vector3(0,2,0) );
+lineGeom.vertices.push( new THREE.Vector3(-2,-2,0) );
+</pre>
+
+<p class="np">Recall that for a JavaScript array, the <i>push</i> method can
+be used to add an item onto the end of the array.  Alternatively, we could create a
+new array containing the vertices and assign it to the property <i>lineGeom.vertices</i>:</p>
+
+<pre>lineGeom.vertices = [
+    new THREE.Vector3(-2,-2,0),
+    new THREE.Vector3(2,-2,0),
+    new THREE.Vector3(0,2,0),
+    new THREE.Vector3(-2,-2,0)
+];
+</pre>
+
+<p>We will also need a material.  For lines, the material can be represented
+by an object of type <span class="classname">THREE.LineBasicMaterial</span>.
+The constructor for this class takes as its parameter a JavaScript
+object that can specify several properties of the material, including a
+color and linewidth.  For example:</p>
+
+<pre>var lineMat = new THREE.LineBasicMaterial( {
+    color:  0xffff00,  // yellow
+    linewidth: 2       // 2 pixels
+} );
+</pre>
+
+<p class="np">If the color is omitted, a default value of white is used.
+The default for linewidth is&nbsp;1.  The parameter can be omitted entirely,
+to use all the defaults.  Furthermore, the color and linewidth can be
+set later by assigning values to properties of the material object:</p>
+
+<pre>var lineMat = new THREE.LineBasicMaterial();
+lineMat.color = new THREE.Color(0xffff00);
+lineMat.linewidth = 2;
+</pre>
+
+<p class="np">With the geometry and material in hand, we can create a <span class="classname">Line</span>
+object.  The constructor takes the geometry and material as parameters, along with
+one of the constants <i>THREE.LineStrip</i> or <i>THREE.LinePieces</i>  to indicate
+whether a line strip or disconnected line segments should be drawn:</p>
+
+<pre>var line = new THREE.Line( lineGeom, lineMat, THREE.LineStrip );</pre>
+
+<p class="np">If the third parameter is omitted, it defaults to <i>THREE.LineStrip</i>.
+If the second parameter is omitted, it defaults to a <span class="classname">LineBasicMaterial</span>
+with a random color.  All of this is typical of the flexibility of JavaScript.</p>
+
+<p><img src="images/15/triangle.png" with="101" height="102" hspace=5 vspace=5 align=right>
+We consider one more option:  using a different color for each vertex.
+To do this, you need to add vertex colors to the <span class="classname">Geometry</span>
+object.  The array of vertex colors is stored in the <i>colors</i> property of the geometry.
+Furthermore, you need to set the <i>vertexColors</i> property of the
+<span class="classname">LineBasicMaterial</span> to <i>true</i> to indicate
+that the vertex colors should be used instead of the material colors.  Let's
+make a triangle with a red, a blue, and a green vertex&mdash;and add the triangle
+to a scene so that we can see it on the screen:</p>
+
+<pre>var lineGeom = new THREE.Geometry();
+lineGeom.vertices.push( new THREE.Vector3(-2,-2,0) );
+lineGeom.vertices.push( new THREE.Vector3(2,-2,0) );
+lineGeom.vertices.push( new THREE.Vector3(0,2,0) );
+lineGeom.vertices.push( new THREE.Vector3(-2,-2,0) );
+lineGeom.colors.push( new THREE.Color(0xff0000) );
+lineGeom.colors.push( new THREE.Color(0x00ff00) );
+lineGeom.colors.push( new THREE.Color(0x0000ff) );
+lineGeom.colors.push( new THREE.Color(0xff0000) );
+var lineMat = new THREE.LineBasicMaterial({
+    linewidth: 3,
+    vertexColors: true
+});
+var triangle = new THREE.Line( lineGeom, lineMat );
+scene.add(triangle);  // scene is of type THREE.Scene
+</pre>
+
+<p class="np">The "Basic" in <span class="classname">LineBasicMaterial</span>
+indicates that this material uses basic colors that do not require lighting
+to be visible and are not affected by lighting.  This is generally what
+you want for lines.</p>
+
+<hr class="break">
+    
+<p>Mesh objects work similarly to lines: You need a geometry
+and a material before you can create a mesh.   Three.js comes with
+classes to represent common mesh geometries, such as a sphere,
+a cylinder, and a torus.  For these built-in classes, you need only
+call a constructor.  For example, the class <span class="classname">THREE.CylinderGeometry</span>
+represents the geometry for a cylinder, and its constructor takes the form</p>
+
+<pre>new THREE.CylinderGeometry(radiusTop, radiusBottom, height,
+                     radiusSegments, heightSegments, openEnded)
+</pre>
+
+<p class="np">The cylinder has the <i>y</i>-axis as its axis and extends
+from &minus;<i>height</i>/2 to <i>height</i>/2 along that axis.
+The radius of its circular top is <i>radiusTop</i> and of its
+bottom is <i>radiusBottom</i>.  The two radii
+don't have to be the same; when the are different, you get a truncated cone rather
+than a cylinder as such.  Use a value of zero for <i>radiusTop</i>  to get an actual cone.
+The parameters <i>radiusSegments</i> and <i>heightSegments</i>
+give the number of subdivisions around the circumference of the cylinder and
+along its length respectively&mdash;what are called slices and stacks in GLUT.
+The last parameter, <i>openEnded</i>, is a boolean value that indicates
+whether the top and bottom of the cylinder are to be drawn; use the value <i>true</i>
+to get an open-ended tube.  All of the parameters are optional, but it's probably best to
+include at least the first three since the default size is rather large.</p>
+
+<p>Other standard mesh geometries are similar.  Here are constructors for
+cube, sphere, torus, and icosahedron, showing all parameters.  There are also
+a tetrahedron and an octahedron, similar to the icosahedron, but, surprisingly,
+no dodecahedron (perhaps because they didn't want to deal with the pentagonal
+faces).</p>
+
+<pre>
+new THREE.CubeGeometry(width, height, depth,
+                                widthSegments, heightSegments, depthSegments)
+                                
+new THREE.PlaneGeometry(width, height, widthSegments, heightSegments)
+
+new THREE.SphereGeometry(radius, widthSegments, heightSegments,
+                                 phiStart, phiLength, thetaStart, thetaLength)
+
+new THREE.TorusGeometry(radius, tube, radialSegments, tubularSegments, arc)
+
+new THREE.IcosahedronGeometry(radius, subdivisions)
+</pre>
+
+<p>The class <span class="classname">CubeGeometry</span>
+represents the geometry of a rectangular box centered at the origin.  Its constructor
+has three parameters to give the size of the box in each direction; these are <b>not</b>
+optional.  The last three parameters are optional. They give the number of subdivisions
+in each direction, with a default of&nbsp;1; values greater than one will cause the faces
+of the box to be subdivided into smaller rectangles.</p>
+
+<p>The class <span class="classname">PlaneGeometry</span> represents the
+geometry of a rectangle lying in the <i>xy</i>-plane, centered at the origin.
+Its parameters are similar to those for a cube.</p>
+
+<p>For <span class="classname">SphereGeometry</span>, all parameters
+are optional.  The constructor creates a sphere centered at the origin,
+with axis along the <i>y</i>-axis.  The first parameter, which gives the radius of the sphere,
+has a default of 50 (which is much too big!).  The next two parameters
+give the numbers of slices and stacks, with default values that are too small.
+The last four parameters allow you to make a piece of a sphere; the default values
+give a complete sphere.  The last four parameters are angles measured in radians.  <i>phiStart</i>
+and <i>phiLength</i> are measured in angles around the equator and give the extent in
+longitude of the spherical shell that is generated.  For example,
+</p>
+
+<pre>
+new THREE.SphereGeometry( 5, 32, 16, 0, Math.PI)
+</pre>
+
+<p class="np">creates the geometry for the "western hemisphere" of a sphere.  The
+last two parameters are angles measured along a line of latitude from the north pole
+of the sphere to the south pole.  For example, to get the sphere's "northern hemisphere":</p>
+
+<pre>
+new THREE.SphereGeometry( 5, 32, 16, 0, 2*Math.PI, 0, Math.PI/2 )
+</pre>
+
+<p>For <span class="classname">TorusGeometry</span>, the constructor creates a torus
+lying in the <i>xy</i>-plane, centered at the origin, with the <i>z</i>-axis passing through
+its hole.  The parameter <i>radius</i> is the distance from
+the center of the torus to the center of the torus's tube, while <i>tube</i>
+is the radius of the tube.  The next two parameters give the number of subdivisions in
+each direction.  The last parameter, <i>arc</i> allows you to make just part of a torus.
+It is an angle between 0 and <i>2*Math.PI</i>, measured along the circle at the center of the
+tube.
+</p>
+
+<p>Finally, for <span class="classname">Icosahedron</span>, the second constructor parameter,
+<i>subdivisions</i> allows you to create the objects called "icospheres" in Blender.
+The default value, 1, gives an actual icosahedron.  Larger values give an approximation for
+a sphere that is obtained by subdividing the faces of the icosahedron.  The value should
+be a small integer; anything larger than 5 or 6 will have an unreasonably large number
+of faces.</p>
+
+<hr class="break">
+    
+<p>To create a mesh object, you need a material as well as a geometry.  There are
+three kinds of material suitable for mesh objects:  <span class="classname">THREE.MeshBasicMaterial</span>,
+<span class="classname">THREE.MeshLambertMaterial</span>, and
+<span class="classname">THREE.MeshPhongMaterial</span>.  The first represents a color that
+is not affected by lighting; it looks the same whether or not there are lights in the
+scene.  The other two represent materials that need to be lit to be seen; the difference
+is that <span class="classname">MeshPhongMaterial</span> has a specular color but
+<span class="classname">MeshLambertMaterial</span> does not.  Both can have diffuse,
+ambient, and emissive colors.  For all three material classes, the constructor has one
+parameter which is a JavaScript object that specifies values for properties of the
+material object.  For example:
+</p>
+
+<pre>var mat = new THREE.MeshPhongMaterial( {
+          color: 0xbbbb00,     // reflectivity for diffuse light
+          ambient: 0xbbbb00,   // reflectivity for ambient light
+          emissive: 0,         // emissive color; this is the default (black)
+          specular: 0x505050,  // reflectivity for specular light
+          shininess: 50        // controls size of specular highlights
+    } );
+</pre>
+
+<p class="np">This example shows the five color parameters for a Phong material.
+A Lambert material lacks <i>specular</i> and <i>shininess</i>, and a basic mesh
+material has only <i>color</i>.</p>
+
+<p>There are a few other material properties that you might need to set.
+These apply to all three kinds of mesh material:</p>
+
+<ul class="api">
+    <li><code>wireframe</code> &mdash; a boolean value that indicates whether the mesh
+      should be drawn as a wireframe model, showing only the outlines of its faces.  The
+      default is <i>false</i>. A <i>true</i> value works best with <span class="classname">MeshBasicMaterial</span>.</li>
+    <li><code>wireframeLinewidth</code> &mdash; the width of the lines used to draw the
+    wireframe, in pixels.  The default is&nbsp;1.</li>
+    <li><code>visible</code> &mdash; a boolean value that controls whether the material is
+    drawn or not, with a default of <i>true</i>.</li>
+    <li><code>side</code> &mdash; has value <i>THREE.FrontSide</i>, <i>THREE.BackSide</i>,
+    or <i>THREE.DoubleSide</i>, with the default being <i>THREE.FrontSide</i>.  This determines
+    whether a face is drawn or not.  With the default value, <i>THREE.FrontSide</i>, a face
+    is drawn only if it is being viewed from the front.  <i>THREE.DoubleSide</i> will draw
+    it whether it is viewed from the front or from the back, and <i>THREE.BackSide</i> only
+    if it is viewed from the back.  For closed objects, such as a cube or a complete sphere,
+    the default value makes sense, at least as long as the viewer is outside of the object.
+    For a plane, an open tube, or a partial sphere, the value should be set to
+    <i>THREE.DoubleSide</i>.  Otherwise, parts of the object that should be in view won't
+    be drawn.</li>
+    <li><code>shading</code> &mdash; has value <i>THREE.SmoothShading</i> or <i>THREE.FlatShading</i>,
+    with the default being <i>THREE.SmoothShading</i>.  When making a Lambert or Phong
+    material for an object that is supposed to look "faceted," with flat sides, it is
+    important to set this property to <i>THREE.FlatShading</i>.  That would be true, for
+    example, for a cube or for a cylinder with a small number of sides.</li>
+</ul>
+
+<p class="np">As an example, let's make a shiny, blue-green, open, five-sided tube with flat sides:</p>
+
+<pre>
+var mat = new THREE.MeshPhongMaterial( {
+       color: 0x0088aa, 
+       ambient: 0x0088aa, 
+       specular: 0x003344, 
+       shininess: 100,
+       shading: THREE.FlatShading, // for flat-looking sides
+       side: THREE.DoubleSide  // for drawing the inside of the tube
+    } );
+var geom = new THREE.CylinderGeometry(3,3,10,5,1,true);
+var obj = new THREE.Mesh(geom,mat);
+scene.add(obj);
+</pre>
+
+<p><img src="images/15/pill.png" width=100 height=93 align=right hspace=5 vspace=5>
+I should note that you don't always need to make new materials and geometries
+to make new objects.  You can reuse the same materials and geometries in different
+objects.  As an example, let's make a non-shiny red object consisting of a cylinder
+with a hemisphere on each end.  We can use the same material for all three
+pieces of the object, and we can use the same geometry for both hemispheres.
+Note that the hemispheres are parented to the cylinder so that we can treat
+the three pieces as a single, hierarchical object:</p>
+
+<pre>
+var hemisphereGeom = new THREE.SphereGeometry( 5, 32, 16,
+                                   0, 2*Math.PI, 0, Math.PI/2 );
+var tubeGeom = new THREE.CylinderGeometry( 5, 5, 8, 32, 5, true );
+var redMat = new THREE.MeshLambertMaterial( {
+         color: "red",  // CSS color names can be used!
+     } );
+var top = new THREE.Mesh( hemisphereGeom, redMat );
+var bottom = new THREE.Mesh( hemisphereGeom, redMat );
+var pill = new THREE.Mesh( tubeGeom, redMat );
+top.position.y = 4;  // move to top of cylinder
+bottom.rotation.x = Math.PI; // rotate so it's facing down
+bottom.position.y = -4; // move to bottom of cylinder
+pill.add(top);
+pill.add(bottom);
+scene.add(pill);
+</pre>
+
+<p><img src="images/15/cube-6color.png" width=100 height=98 align=right hspace=5 vspace=5>
+I want to mention one more option for mesh materials: the ability to apply
+a different material to each face.  To do that, use the material class
+<span class="classname">THREE.MeshFaceMaterial</span>.  The constructor
+takes an array of materials.  The length of the array should equal the
+number of faces of the mesh to which the material is applied.  As an
+example, we can make a cube with a different color on each of its six
+faces:</p>
+
+<pre>
+var cubeGeom = new THREE.CubeGeometry(10,10,10);
+var cubeMaterial = new THREE.MeshFaceMaterial( [
+    new THREE.MeshPhongMaterial( { color: "red" } ),     // +x face
+    new THREE.MeshPhongMaterial( { color: "cyan" } ),    // -x face
+    new THREE.MeshPhongMaterial( { color: "green" } ),   // +y face
+    new THREE.MeshPhongMaterial( { color: "magenta" } ), // -y face
+    new THREE.MeshPhongMaterial( { color: "blue" } ),    // +z face
+    new THREE.MeshPhongMaterial( { color: "yellow" } )   // -z face
+] );
+var cube = new THREE.Mesh( cubeGeom, cubeMaterial );
+</pre>
+
+</div>
+
+<div class="subsection">
+<h3>Lights</h3>
+
+<p>Compared to objects and materials, lights are easy!  Three.js
+has several classes to represent lights.  They are subclasses of
+<span class="classname">THREE.Object3D</span>, so a light can be added directly
+to a scene or as a child of anther object in the scene graph. And lights
+can be rotated and translated like other objects.  (I don't believe that
+scaling a light has any effect.)</p>
+
+<p>The class <span class="classname">THREE.DirectionalLight</span> represents
+light that shines in parallel rays from a given direction, like the light from
+the sun.  The <i>position</i> property of a directional light gives the direction
+from which the light shines.  (This is the same <i>position</i> <span class="classname">Vector3</span>
+that ordinarily represents the location of an object.)  Note that the direction of the
+light is from the position towards the origin.  The default position is
+the vector (0,1,0), which gives a light shining down the <i>y</i>-axis.  The
+constructor for this class has two parameters:</p>
+
+<pre>new THREE.DirectionalLight( color, intensity )
+</pre>
+
+<p class="np">where <i>color</i> specifies the color of the light, given as
+a hexadecimal integer or a CSS color string.   Lights do not have separate
+diffuse and specular colors, as they do in OpenGL.  The <i>intensity</i> is a non-negative number
+that controls the brightness of the light, with larger values making the light
+brighter.  A light with intensity zero gives no light at all.  The parameters
+are optional.  The default for color is white (0xffffff) and for intensity is&nbsp;1.</p>
+
+<p>The class <span class="classname">THREE.PointLight</span>  represents a light
+that shines in all directions from a point.  The position of the point is given
+by the light's <i>position</i> property.  The constructor has three optional
+parameters:</p>
+
+<pre>new THREE.PointLight( color, intensity, cutoff )
+</pre>
+
+<p class="np">The first two parameters are the same as for a directional light,
+with the same defaults.  The <i>cutoff</i> is a non-negative number.
+If the value is zero&mdash;which is the default&mdash;then the illumination from the
+light extends to infinity, and intensity does not decrease with distance.  While
+this is not physically realistic, it generally works well in practice.  If <i>cutoff</i>
+is greater than zero, then the intensity falls from a maximum right at the light
+down to an intensity of zero at a distance of <i>cutoff</i> from the light.
+The light has no effect on objects that are at a distance greater than <i>cutoff</i> from the position
+of the light.</p>
+
+<p>An object of type <span class="classname">THREE.SpotLight</span> is similar
+to a point light, but instead of shining in all directions, it only produces a
+cone of light.  The constructor adds two parameters to those for a point light:</p>
+
+<pre>new THREE.SpotLight( color, intensity, cutoff, coneAngle, exponent )</pre>
+
+<p class="np">The <i>coneAngle</i> is a number between 0 and <i>Math.PI/2</i>
+that determines the size of the cone of light.  It is the angle between the
+axis of the cone and the side of the cone.  The default value is <i>Math.PI/3</i>.
+The <i>exponent</i> is a non-negative number that determines how fast the intensity
+of the light decreases as you move from the axis of the cone toward the side.  The default
+value, 10, gives rather rapid falloff. An <i>exponent</i> of zero gives no
+falloff at all.
+</p>
+
+<p>Finally, I mention <span class="classname">THREE.AmbientLight</span>.
+This class exists to add ambient light to a scene.  An ambient light has
+only a color:</p>
+
+<pre>new THREE.AmbientLight( color )
+</pre>
+
+<p class="np">and adding an ambient light object to a scene adds ambient light of the specified color
+to the scene.  Any transformation applied to an ambient light has no effect, since ambient light
+doesn't have a source or direction.   The color components of an ambient light should be rather
+small to avoid washing out colors of objects in the scene.</p>
+
+<p>For example, suppose that we would like a yellowish point light at (10,30,15) whose illumination
+falls off with distance from that point, out to a distance of 100 units.  We also want to
+add a bit of yellow ambient light to the scene:</p>
+
+<pre>
+var light = new THREE.PointLight( 0xffffcc, 1, 100 );
+light.position.set( 10, 30, 15 );
+scene.add(light);
+scene.add( new THREE.AmbientLight(0x111100) );
+</pre>
+
+<p class="np">Or suppose that we have a camera on the positive <i>z</i>-axis,
+looking towards the origin, and we would like a light that shines in the same
+direction that the camera is looking.  We can use a directional light whose
+position is on the positive <i>z</i>-axis:</p>
+
+<pre>
+var light = new THREE.DirectionalLight(); // default white light
+light.position.set( 0, 0, 1 );
+scene.add(light);
+</pre>
+
+<p class="">Now, suppose that we want to be able to move the camera around,
+and we want a "viewpoint" light that always shines in the direction the camera
+is facing.  One way to do that is to add both the camera and the light
+to an empty object.  Then transforming that object will transform the camera and the
+light together.  A camera's default view is in the direction of the negative
+<i>z</i>-axis, so we still want a light that shines
+in that direction (in object coordinates):</p>
+
+<pre>
+cameraAndLight = new THREE.Object3D();  // global variable
+var light = new THREE.DirectionalLight();
+light.position.set( 0, 0, 1 );
+cameraAndLight.add( camera );  // camera is also global
+cameraAndLight.add( light );
+scene.add( cameraAndLight );
+</pre>
+
+<p>For an example of a very simple three.js scene, see
+<a href="threejs/simple-cube-threejs.html" class="nb">simple-cube-threejs.html</a>,
+which shows a cube with six different colored faces.  The user can rotate the
+cube using the arrow keys.</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>Image Textures</h3>    
+
+<p>Applying image textures to objects is not difficult in three.js.  A texture
+is represented by an object of type <span class="classname">THREE.Texture</span>.
+An image texture can be loaded from a relative URL that points to an image file
+on the same web server as the web page on which the texture is used.  (Because
+of security restrictions on JavaScript, images from another server can be used
+only if that server is configured to allow such access.  Furthermore, some web
+browsers won't allow JavaScript to load an image from the local filesystem, even
+with a relative URL, and image textures won't work in those browsers for web
+pages loaded from a file.)</p>
+
+<p>Image textures are usually created by using the <i>loadTexture</i> function from the class
+<span class="classname">THREE.ImageUtils</span>.  The function takes a
+URL as parameter and returns a <span class="classname">Texture</span> object:</p>
+
+<pre>var texture = THREE.ImageUtils.loadTexture( imageURL );
+</pre>
+
+<p class="np">A texture in three.js is considered to be part of a material.  To apply
+a texture to a mesh, just assign the <span class="classname">Texture</span> object to the
+<i>map</i> property of the mesh material that is used on the mesh:
+</p>
+
+<pre>material.map = texture;
+</pre>
+
+<p>In general, the material color will be white, since the material color will
+be multiplied by colors from the texture.  A non-white material color will add
+a "tint" to the texture colors.  Texture coordinates are part of the mesh
+geometry.  The standard mesh geometries such as <span class="classname">THREE.SphereGeometry</span>
+come with texture coordinates already defined.</p>
+
+<p>That's the basic idea&mdash;create a texture object from an image URL and assign
+it to the <i>map</i> property of a material&mdash;but of course there are complications.
+First of all, image loading is "asynchronous."  That is, calling
+<i>THREE.ImageUtils.loadTexture</i> only starts the process of loading the image,
+and the process can complete sometime after the function returns.  Using a texture
+on an object before the image has finished loading does not cause an error, but
+the scene will be rendered as if the image were completely black.  Once the image
+has been loaded, the scene has to be rendered again to show the image texture.
+If an animation is running, this will happen automatically; the image will appear
+in the first frame after it has finished loading.  But if there is no animation,
+you need a way to render the scene once the image has loaded.  In fact, the
+<i>loadTexture</i> function has several optional parameters:
+</p>
+
+<pre>THREE.ImageUtils.loadTexture( imageURL, mapping, onLoad, onError );
+</pre>
+
+<p class="np">The <i>mapping</i> parameter tells how the texture is applied; for
+basic image textures, pass the default value <i>THREE.UVMapping()</i> or pass
+<i>undefined</i> as the parameter to use this default.  The <i>onLoad</i>
+and <i>onError</i> parameters are callback functions.  The <i>onLoad</i>
+function, if defined, will be called once the image has been successfully loaded.
+The <i>onError</i> function will be called if the attempt to load the image
+fails.  For example, if there is a function <i>render</i>() that renders the
+scene, then <i>render</i> itself could be used as the <i>onLoad</i> function.
+For example:</p>
+
+<pre>var texture = THREE.ImageUtils.loadTexture( "brick.png", undefined, render );
+</pre>
+
+<p class="np">Another possible use of <i>onLoad</i> would be to delay assigning
+the texture to a material until the image has finished loading.</p>
+</p>
+
+<hr class="break">
+    
+<p>A <span class="classname">Texture</span> has a number of properties that can be
+set, including properties to set the minification and magnification filters for the
+texture and a property to control the generation of mipmaps, which is done automatically
+by default.  The properties that you are most likely to want to change are the wrap mode
+for texture coordinates outside the range 0 to&nbsp;1 and the texture transformation.</p>
+
+<p>For a <span class="classname">Texture</span> object <i>tex</i>, the properties <i>tex.wrapS</i> and <i>tex.wrapT</i>
+control how <i>s</i> and <i>t</i> texture coordinates outside the range 0 to 1 are
+treated.  The default, as in OpenGL, is "clamp to edge."  You will most likely want
+to make the texture repeat in both directions by setting the property values to
+<i>THREE.RepeatWrapping</i>:
+</p>
+
+<pre>
+tex.wrapS = THREE.RepeatWrapping;
+tex.wrapT = THREE.RepeatWrapping;
+</pre>
+
+<p class="np">RepeatWrapping works best with "seamless" textures, where the top edge of the image
+matches up with the bottom edge and the left edge with the right.
+Three.js also offers an interesting variation called <span class="newword">mirrored
+repetition</span> in which every other copy of the repeated image is flipped.  This eliminates
+the seam between copies of the image.  For mirrored repetition, use the property value
+<i>THREE.MirroredRepeatWrapping</i>:</p>
+
+<pre>
+tex.wrapS = THREE.MirroredRepeatWrapping;
+tex.wrapT = THREE.MirroredRepeatWrapping;
+</pre>
+
+<p>The texture properties <i>repeat</i> and <i>offset</i> control the scaling and the translation
+texture transformations that are applied to the texture.  (As in Blender, there is no
+texture rotation.)  The values of these properties are of type <span class="classname">THREE.Vector2</span>,
+so that each property has an <i>x</i> and a <i>y</i> component.  For a <span class="classname">Texture</span>,
+<i>tex</i>, the two components of <i>tex.offset</i> give the texture translation in the horizontal
+and vertical directions.  To offset the texture by 0.5 horizontally, you can say
+either</p>
+
+<pre>tex.offset.x = 0.5;
+</pre>
+
+<p class="np">or</p>
+
+<pre>tex.offset.set( 0.5, 0 );
+</pre>
+
+<p class="np">Remember that a positive horizontal offset will move the
+texture to the <i>right</i> on the objects, because the offset is applied to the
+texture coordinates not to the texture image itself.</p>
+
+<p>The components of the propety <i>tex.repeat</i>
+give the texture scaling in the horizontal and vertical directions.  For example,</p>
+
+<pre>tex.repeat(2,3);
+</pre>
+
+<p class="np">will scale the texture coordinates by a factor of 2 horizontally and
+3 vertically.  Again, the effect on the image is the inverse, so that the image
+is shrunk by a factor of 2 horizontally and 3 vertically.  The result is that you
+get two copies of the image in the horizontal direction where you would have had
+one, and three vertically.  This explains the name "repeat", but note that the values
+are not limited to be integers.</p>
+
+<p>For an example of using textures, see the source code for
+<a href="threejs/texture-demo-threejs.html" class="nb">texture-demo-threejs.html</a>.
+That program allows the user to select among several different objects and
+several different textures, and it has the option of animating the texture
+offset to make the texture crawl across the object.</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>About Caching and Updating</h3>
+
+<p>When a renderer renders a scene in three.js, it uses the properties of the
+camera and the objects in the scene to compute the data that it needs to render
+the scene.  To avoid redoing the computations unnecessarily, various parts
+of the data are cached in JavaScript variables or on the graphics card.  When you
+change property values, some of the data will need to be recomputed.  However,
+in most cases, three.js will <b>not</b> recompute the data unless you tell
+it that it needs to do so.  If you forget to do that when required, the
+property change will have no effect.</p>
+
+<p>For example, a camera uses a matrix to store the projection transformation
+that it applies to the scene.  The matrix is computed from properties of the
+camera, such as field of view and aspect ratio.  However, the matrix is not
+automatically recomputed when any of these properties are changed.  For a
+property change to have an effect, you need to call
+<i>camera.updateProjectionMatrix</i>() after changing the property value.</p>
+
+<p>The model transformation matrices that are applied to objects in the scene
+<b>are</b> recomputed automatically, by default, each time the scene is rendered.
+However, other data, such as the vertex arrays, are not recomputed automatically.
+Remember that the vertex data are probably stored in vertex buffer
+objects on the graphics card.  It would make little sense to update the data
+in those VBOs in every frame, if the data has not actually changed.
+For example, if you make changes to the vertex coordinates in a line
+or mesh geometry object, <i>geom</i>, you need to set</p>
+
+<pre>geom.verticesNeedUpdate = true;
+</pre>
+
+<p class="np">The renderer checks this flag and will update the vertex data
+(probably in a VBO) before rendering.</p>
+
+<p>Materials and textures are similar.  When you change any property of a material,
+<i>mat</i>, after the material has been used by renderer,
+you need to set</p>
+
+<pre>mat.needsUpdate = true;
+</pre>
+
+<p class="np">Similarly, for a texture, <i>tex</i>, you should set</p>
+
+<pre>tex.needsUpdate = true;
+</pre>
+
+<p class="np">after changing a property of the texture such as the
+wrap modes or offset.  Material and texture updates are used in the
+texture demo, <a href="threejs/texture-demo-threejs.html" class="nb">texture-demo-threejs.html</a>.</p>
+
+</div>
+
+
+
+<div class="subsection">
+<h3>About Animation</h3>
+
+<p>My previous JavaScript animations, in <a href="05_Canvas_2D.html">Section&nbsp;5</a>, were
+based on the standard JavaScript <i>setTimeout</i> function.  Although it works, it has the
+problem that the animation will continue to run and consume computing resources even if
+the web page is not visible to the user, because it's in a hidden browser tab or in a minimized
+window.  A more modern technique uses a function called <i>requestAnimationFrame</i>.
+Unfortunately, it has not yet been implemented in all browsers.  When you load three.js,
+however, it will define <i>requestAnimationFrame</i>, if it is not already defined.
+So, it's safe to use it for three.js animations.</p>
+
+<p>The function <i>requestAnimationFrame</i> schedules a function to be run as part of the
+next scheduled redraw of the web page, and asks the browser to schedule a redraw if the page
+is visible and there is not already one scheduled.  It takes takes one parameter, which
+is the callback function that the browser will execute when it redraws the page.  To do animation,
+that callback function should itself call <i>requestAnimationFrame</i> to schedule the
+next frame.  The general pattern is:</p>
+
+<pre>function frame() {
+    .... UPDATE DATA FOR THIS FRAME ....
+    .... RENDER THE FRAME ...
+    requestAnimationFrame(frame);
+}
+</pre>
+
+<p class="np">The animation can be started by calling <i>requestAnimationFrame</i>(<i>frame</i>).</p>
+
+<p>Another improved animation technique is to base the animation on elapsed time
+rather than frame number.  Three.js has a class <span class="classname">THREE.Clock</span>
+for keeping track of elapsed time.  An object <i>clock</i> of type
+<span class="classname">THREE.Clock</span> has functions <i>clock.start</i>() and
+<i>clock.stop</i>() to start and pause the clock.  It has a function
+<i>clock.getElapsedTime()</i> to get the time, in seconds, for which the clock
+has been running.  Alternatively, you can call <i>clock.getDelta</i>() to get the
+number of seconds since the last time <i>clock.getDelta</i>() or <i>clock.getElapsedTime</i>()
+was called. I use a <span class="classname">Clock</span> in my animation
+framework, shown below, but I have added a function <i>clock.getFrameNumber</i>() to return
+the current frame number for use in frame-number-based animations.</p>
+
+<p>For an example of three.js animation, see
+<a href="threejs/bouncing-balls-threejs.html" class="np">bouncing-balls-threejs.html</a>.</p>
+
+<p>Here is my typical code for doing an animation in three.js, where
+it is possible to pause and restart the animation.  The only change
+that needs to be made is in <i>updateForFrame</i>():</p>
+
+<pre>
+    
+function render() {  // called by animation support
+    renderer.render( scene, camera );  // render the scene
+}
+
+function updateForFrame() {  // called by animation support
+    var frameNum = clock.getFrameNumber();
+    var runTime = clock.getElapsedTime();
+    // ... ADD CODE TO UPDATE SCENE FOR THE CURRENT FRAME ...
+}
+
+//------------------ animation support, does not need to be changed ---------
+
+var clock;  // Keeps track of elapsed time of animation.
+            // clock.getElapsedTime() gives the time, in seconds, that the
+            // animation has been running, not including time when it was
+            // paused.  clock.getFrameNumber() gives the current frame number,
+            // that is, the number of times the scene has been rendered.
+
+var animating = false;
+
+function doFrame() {  
+    if (animating) {
+        clock.frameNumber++;
+        updateForFrame();
+        render();
+        requestAnimationFrame(doFrame); 
+    }
+}
+
+function startAnimation() {
+    if (!animating) {
+        if (!clock) {
+            clock = new THREE.Clock(false);
+            clock.frameNumber = 0;
+            clock.getFrameNumber = function() { return this.frameNumber }
+        }
+        clock.start();
+        animating = true;
+        requestAnimationFrame(doFrame);
+    }
+}
+
+function pauseAnimation() {
+    if (animating) {
+        clock.stop();
+        animating = false;
+    }
+}
+
+</pre>
+
+</div>
+
+
+
+
+<p class="nav">[
+<a href="14_Blender_Animation.html">Previous Section</a> |
+<a href="16_Threejs_Advanced.html">Next Section</a> |
+<a href="index.html">Index</a>
+]</p>
+
+</div>
+
+</body>
+</html>
